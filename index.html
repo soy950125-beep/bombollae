@@ -6,6 +6,20 @@
 <title>봄볼래 · 안 본 작품만 골라 주는 추천</title>
 <meta name="description" content="본 작품은 빼고, 내 취향에 맞는 드라마·영화·애니만 이유와 함께 추천해 주는 웹 앱">
 <meta name="theme-color" content="#FFF6F8">
+<!-- 링크 미리보기 카드 (카카오톡, 노션, 슬랙, 이력서 사이트 등) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="봄볼래">
+<meta property="og:title" content="봄볼래 · 당신이 원하는 오늘의 즐거움">
+<meta property="og:description" content="본 건 빼고, 안 본 드라마·영화·애니만 이유와 함께 추천해 주는 웹 앱">
+<meta property="og:url" content="https://bombollae.vercel.app">
+<meta property="og:image" content="https://bombollae.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="봄볼래 · 당신이 원하는 오늘의 즐거움">
+<meta name="twitter:description" content="본 건 빼고, 안 본 드라마·영화·애니만 이유와 함께 추천해 주는 웹 앱">
+<meta name="twitter:image" content="https://bombollae.vercel.app/og.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,6 +71,26 @@
   <div class="splash-name"><span>봄</span>볼래</div>
   <div class="splash-tag">당신이 원하는 오늘의 즐거움</div>
 </div>
+
+<!-- 넓은 화면(PC)에서만 보이는 왼쪽 소개: 처음 보는 사람이 무슨 앱인지 바로 알 수 있게 -->
+<aside class="desk-intro" aria-label="봄볼래 소개">
+  <svg class="desk-logo" viewBox="-32 -32 64 64" aria-hidden="true">
+    <g fill="url(#lg)" stroke="#E58BA4" stroke-width="0.7"><use href="#lp"/><use href="#lp" transform="rotate(72)"/><use href="#lp" transform="rotate(144)"/><use href="#lp" transform="rotate(216)"/><use href="#lp" transform="rotate(288)"/></g>
+    <path d="M-2.2-3.9L4.3 0L-2.2 3.9Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="2" stroke-linejoin="round"/>
+  </svg>
+  <h2 class="desk-name"><span>봄</span>볼래</h2>
+  <p class="desk-tag">당신이 원하는 오늘의 즐거움</p>
+  <ul class="desk-points">
+    <li>본 작품은 빼고, 안 본 것만 추천해요</li>
+    <li>왜 재밌을지 이유를 같이 알려 줘요</li>
+    <li>드라마 · 영화 · 애니, 볼 수 있는 곳까지</li>
+    <li>고르기 힘들면 월드컵으로 오늘의 한 편</li>
+  </ul>
+  <div class="desk-qr">
+    <img src="qr.svg" alt="휴대폰으로 봄볼래 열기 QR 코드" width="96" height="96">
+    <span>휴대폰 카메라로 찍으면<br>바로 열려요</span>
+  </div>
+</aside>
 
 <div class="deco deco-tl" id="decoTL" aria-hidden="true"></div>
 <div class="deco deco-br" id="decoBR" aria-hidden="true"></div>

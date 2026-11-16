@@ -69,7 +69,7 @@ export function rankCandidates(catalog, state, lookup) {
 }
 
 /**
- * 추천 화면 구성: 1순위 작품 하나(hero) + 이유별 가로 줄(rows).
+ * 홈 화면 구성: 1순위 작품 하나(hero) + 이유별 가로 줄(rows).
  * 같은 작품이 여러 줄에 겹쳐 나오지 않도록, 앞 줄에서 쓴 작품은 다음 줄에서 뺀다.
  */
 export function buildShelves(ranked, state, lookup) {

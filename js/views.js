@@ -187,6 +187,9 @@ export function recView({ S, catalog, lookup, justWished }) {
   const shelves = rows.map((row) =>
     `<section class="shelf" aria-label="${esc(row.title)}">` +
     `<h2 class="shelf-title">${esc(row.title)}</h2>` +
+    // PC에서 마우스로 넘길 수 있는 화살표 (휴대폰에서는 숨김)
+    `<button type="button" class="shelf-arrow prev" data-act="shelfMove" data-v="${esc(row.id)}|-1" aria-label="${esc(row.title)} 이전 작품 보기">${ICON.back}</button>` +
+    `<button type="button" class="shelf-arrow next" data-act="shelfMove" data-v="${esc(row.id)}|1" aria-label="${esc(row.title)} 다음 작품 보기">${ICON.back}</button>` +
     `<div class="shelf-scroll" data-row="${esc(row.id)}">${row.items.map((x) => tile(x, S, justWished)).join('')}</div></section>`
   ).join('');
   return head + kindChips('filter', S.filter) + heroCard(hero, S, justWished) + shelves;
@@ -196,7 +199,7 @@ export function wishView({ S, lookup, justWished }) {
   const list = S.wish.map(lookup).filter(Boolean).map((item) => ({ item }));
   return '<header class="page-head"><span class="eyebrow">나중에 볼 작품</span><h1>찜 목록</h1></header>' +
     (list.length ? `<div class="tile-grid">${list.map((x) => tile(x, S, justWished)).join('')}</div>`
-      : empty('아직 찜한 작품이 없어요', '추천 화면에서 하트를 누르면 여기에 모여요.'));
+      : empty('아직 찜한 작품이 없어요', '홈 화면에서 하트를 누르면 여기에 모여요.'));
 }
 
 export function seenView({ S, lookup, catalog, wipeArmed }) {

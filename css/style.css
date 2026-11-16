@@ -141,7 +141,7 @@ body[data-view="rec"] .deco-br, body[data-view="cup"] .deco-br, body[data-view="
 .hero:not(.has-img) .hero-heart[aria-pressed="true"] { color: var(--heart); border-color: var(--heart); }
 
 /* 추천 화면: 이유별 가로 줄 */
-.shelf { display: flex; flex-direction: column; gap: 10px; }
+.shelf { position: relative; display: flex; flex-direction: column; gap: 10px; }
 .shelf-title { margin: 6px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 19px; line-height: 1.35; }
 .shelf-scroll { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
   margin: 0 calc(-1 * max(18px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(18px, env(safe-area-inset-left, 0px)));
@@ -236,6 +236,45 @@ body[data-view="find"] .deco-br { display: none; }
 .cup-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .cup-actions .primary, .cup-actions .ghost { flex: none; width: 100%; }
 @keyframes win-pop { from { transform: scale(.8); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* 홈 가로 줄 화살표: 마우스를 쓰는 PC에서만, 줄에 마우스를 올리면 나타난다 */
+.shelf-arrow { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .shelf-arrow { display: flex; position: absolute; top: 132px; z-index: 3; width: 40px; height: 40px; border-radius: 20px; border: none;
+    background: rgba(255, 255, 255, .95); color: var(--ink); align-items: center; justify-content: center;
+    box-shadow: 0 3px 12px rgba(61, 43, 51, .2); opacity: 0; transition: opacity .2s, transform .15s; }
+  .shelf-arrow.prev { left: -10px; }
+  .shelf-arrow.next { right: -10px; }
+  .shelf-arrow.next svg { transform: scaleX(-1); }
+  .shelf:hover .shelf-arrow, .shelf-arrow:focus-visible { opacity: 1; }
+  .shelf-arrow:hover { transform: scale(1.08); }
+}
+
+/* 넓은 화면(PC): 앱은 가운데 휴대폰 화면처럼, 양옆은 은은한 꽃 배경 + 왼쪽에 앱 소개 */
+.desk-intro { display: none; }
+@media (min-width: 760px) {
+  html { background:
+      radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--accent) 22%, transparent) 0, transparent 28%),
+      radial-gradient(circle at 88% 82%, color-mix(in srgb, var(--accent) 18%, transparent) 0, transparent 30%),
+      var(--soft);
+    background-attachment: fixed; }
+  body { background: transparent; }
+  .app { background: var(--bg); min-height: 100vh; box-shadow: 0 0 0 1px var(--line), 0 20px 60px rgba(61, 43, 51, .1); }
+}
+@media (min-width: 1100px) {
+  .desk-intro { display: flex; flex-direction: column; gap: 14px; position: fixed; top: 50%; transform: translateY(-50%);
+    left: max(24px, calc(50% - 240px - 340px)); width: 290px; color: var(--ink); }
+  .desk-logo { width: 72px; height: 72px; overflow: visible; }
+  .desk-name { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 44px; line-height: 1.1; }
+  .desk-name span { color: #B34A6C; }
+  .desk-tag { margin: 0; color: var(--muted); font-size: 16px; }
+  .desk-points { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+  .desk-points li { display: flex; gap: 10px; }
+  .desk-points li::before { content: ""; width: 7px; height: 7px; border-radius: 4px; background: var(--deep); margin-top: 8px; flex-shrink: 0; }
+  .desk-qr { margin-top: 12px; display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px; }
+  .desk-qr img { border-radius: 8px; flex-shrink: 0; }
+  .desk-qr span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+}
 
 /* 테마·설정 */
 .themes { display: flex; flex-direction: column; gap: 10px; }

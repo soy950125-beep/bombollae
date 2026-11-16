@@ -283,7 +283,17 @@ const top = () => window.scrollTo(0, 0);
 
 /* ---------- 버튼 동작 ---------- */
 
+const NO_RENDER = Symbol('no-render'); // 화면을 다시 그릴 필요가 없는 동작(부드러운 스크롤 등)
+
 const actions = {
+  // 홈 가로 줄 화살표: 한 화면 폭의 80%만큼 부드럽게 넘긴다
+  shelfMove: (v) => {
+    const [row, dir] = v.split('|');
+    const el = document.querySelector(`.shelf-scroll[data-row="${CSS.escape(row)}"]`);
+    if (el) el.scrollBy({ left: Number(dir) * el.clientWidth * 0.8, behavior: 'smooth' });
+    return NO_RENDER;
+  },
+
   // 설문
   kind: (v) => toggle(S.kinds, v),
   love: (v) => {
@@ -425,7 +435,7 @@ document.addEventListener('click', (e) => {
   const fn = actions[btn.dataset.act];
   if (!fn) return;
   if (btn.dataset.act !== 'wipe') wipeArmed = false;
-  fn(btn.dataset.v);
+  if (fn(btn.dataset.v) === NO_RENDER) return;
   save();
   render();
 });
