@@ -5,6 +5,7 @@ import { APP_NAME, THEMES } from './config.js';
 import { readJSON, writeJSON } from './storage.js';
 import { fetchCatalog, searchTitles, fetchDetail, errorMessage } from './tmdb.js';
 import { decoSVG } from './flowers.js';
+import { rankCandidates } from './recommend.js';
 import * as View from './views.js';
 
 const STATE_KEY = 'bombollae-state-v1';
@@ -34,11 +35,17 @@ function defaultState() {
 }
 
 let S = { ...defaultState(), ...readJSON(STATE_KEY, {}), detail: null };
+if (!['rec', 'cup', 'wish', 'seen'].includes(S.tab)) S.tab = 'rec'; // 예전 '테마' 탭은 오른쪽 위 버튼으로 옮겨짐
 const savedCatalog = readJSON(CATALOG_KEY, null);
 const catalog = { items: savedCatalog?.items || [], at: savedCatalog?.at || 0, loading: false, error: '' };
 const search = { q: '', items: [], loading: false, error: '', seq: 0, timer: null };
 const details = {};
 let wipeArmed = false;
+let themeOpen = false; // 오른쪽 위 테마 버튼의 꽃 목록이 열려 있는지
+
+// 오늘의 한 편 월드컵 (새로고침하면 처음부터)
+//   round: 이번 라운드 작품키들, next: 이긴 작품키들, idx: 몇 번째 대결인지, history: 되돌리기용
+const cup = { stage: 'setup', source: 'rec', size: 8, round: [], next: [], idx: 0, done: 0, total: 0, winner: null, history: [] };
 
 const save = () => writeJSON(STATE_KEY, S);
 
@@ -112,7 +119,38 @@ async function loadDetail(item) {
 /* ---------- 화면 그리기 ---------- */
 
 const $ = (sel) => document.querySelector(sel);
-const context = () => ({ S, catalog, search, details, lookup, wipeArmed });
+const context = () => ({
+  S, catalog, search, details, lookup, wipeArmed, cup,
+  cupCounts: S.tab === 'cup' && cup.stage === 'setup' ? { rec: cupPool('rec').length, wish: cupPool('wish').length } : {}
+});
+
+/* ---------- 월드컵 ---------- */
+
+/** 월드컵 후보: 추천작이면 취향 점수 높은 순 16개, 찜이면 아직 안 본 찜 작품 전부 */
+function cupPool(source) {
+  if (source === 'wish') return S.wish.filter((key) => lookup(key) && !S.status[key]);
+  return rankCandidates(catalog.items, { ...S, filter: 'all' }, lookup).slice(0, 16).map((x) => x.item.key);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** 우승 축하: 화면 전체에 꽃잎을 잠깐 흩날린다 */
+function petalRain() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const rain = document.createElement('div');
+  rain.className = 'petal-rain';
+  rain.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(rain);
+  scatterPetals(rain, 36);
+  setTimeout(() => rain.remove(), 5000);
+}
 
 function applyTheme() {
   const t = THEMES[S.theme] || THEMES.sakura;
@@ -168,7 +206,7 @@ function render() {
   const view = $('#view');
   if (S.screen === 'survey') view.innerHTML = View.surveyView(ctx);
   else if (S.screen === 'watched') view.innerHTML = View.watchedView(ctx);
-  else view.innerHTML = ({ rec: View.recView, wish: View.wishView, seen: View.seenView, theme: View.themeView }[S.tab] || View.recView)(ctx);
+  else view.innerHTML = ({ rec: View.recView, cup: View.cupView, wish: View.wishView, seen: View.seenView }[S.tab] || View.recView)(ctx);
 
   document.querySelectorAll('.shelf-scroll[data-row]').forEach((el) => {
     if (shelfScroll[el.dataset.row]) el.scrollLeft = shelfScroll[el.dataset.row];
@@ -177,6 +215,13 @@ function render() {
   const nav = $('#nav');
   nav.hidden = S.screen !== 'main';
   if (!nav.hidden) nav.innerHTML = View.navView(ctx);
+
+  const fab = $('#themeFab');
+  fab.innerHTML = View.themeFab(ctx);
+  fab.setAttribute('aria-expanded', String(themeOpen));
+  const pop = $('#themePop');
+  pop.hidden = !themeOpen;
+  pop.innerHTML = themeOpen ? View.themePop(ctx) : '';
   paintSheet();
 
   if (active) {
@@ -229,7 +274,7 @@ const actions = {
   more: () => { S.screen = 'watched'; top(); },
 
   // 메인 탭
-  tab: (v) => { S.tab = v; top(); },
+  tab: (v) => { S.tab = v; top(); if (v === 'cup') loadCatalog(); },
   filter: (v) => { S.filter = v; },
   open: (key) => { S.detail = key; const it = lookup(key); if (it) loadDetail(it); },
   close: () => {
@@ -256,8 +301,52 @@ const actions = {
     toast('이 작품은 더 추천하지 않을게요');
   },
 
+  // 월드컵
+  cupSource: (v) => { cup.source = v; },
+  cupSize: (v) => { cup.size = Number(v); },
+  cupStart: () => {
+    const pool = cupPool(cup.source);
+    const size = [16, 8, 4].find((n) => n <= cup.size && n <= pool.length);
+    if (!size) { toast('작품이 4개 이상 있어야 해요'); return; }
+    // 추천작은 점수 높은 순으로 자른 뒤 섞고, 찜은 섞은 뒤 자른다
+    const keys = cup.source === 'rec' ? shuffle(pool.slice(0, size)) : shuffle(pool).slice(0, size);
+    Object.assign(cup, { stage: 'match', round: keys, next: [], idx: 0, done: 0, total: size - 1, winner: null, history: [] });
+    keys.forEach((k) => remember(lookup(k)));
+    top();
+  },
+  cupPick: (key) => {
+    cup.history.push(JSON.stringify({ round: cup.round, next: cup.next, idx: cup.idx, done: cup.done }));
+    cup.next.push(key);
+    cup.idx++;
+    cup.done++;
+    if (cup.idx * 2 >= cup.round.length) {      // 이번 라운드 끝
+      if (cup.next.length === 1) {              // 결승까지 끝 → 우승
+        cup.winner = cup.next[0];
+        cup.stage = 'done';
+        petalRain();
+      } else {                                   // 다음 라운드로
+        cup.round = cup.next;
+        cup.next = [];
+        cup.idx = 0;
+      }
+    }
+    top();
+  },
+  cupUndo: () => {
+    const prev = cup.history.pop();
+    if (prev) Object.assign(cup, JSON.parse(prev), { stage: 'match', winner: null });
+  },
+  cupQuit: () => { cup.stage = 'setup'; top(); },
+  cupReset: () => { cup.stage = 'setup'; top(); },
+
   // 테마·설정
-  theme: (v) => { S.theme = v; toast(`${THEMES[v].name} 테마로 바꿨어요`); },
+  themeMenu: () => { themeOpen = !themeOpen; },
+  theme: (v) => {
+    themeOpen = false;
+    if (S.theme === v) return;
+    S.theme = v;
+    toast(`${THEMES[v].name} 테마로 바꿨어요`);
+  },
   reload: () => { loadCatalog(true); },
   resurvey: () => { S.screen = 'survey'; S.q = 0; top(); },
   wipe: () => {
@@ -271,6 +360,12 @@ const actions = {
 
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-act]');
+  // 꽃 목록이 열려 있을 때 바깥을 누르면 닫기만 한다 (아래에 있던 버튼이 같이 눌리지 않도록)
+  if (themeOpen && !e.target.closest('#themePop') && !e.target.closest('#themeFab')) {
+    themeOpen = false;
+    render();
+    return;
+  }
   if (!btn) {
     if (e.target.id === 'sheet') { actions.close(); save(); render(); } // 상세 창 바깥 누르면 닫기
     return;
@@ -291,13 +386,15 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && S.detail) { actions.close(); save(); render(); }
+  if (e.key !== 'Escape') return;
+  if (themeOpen) { themeOpen = false; render(); $('#themeFab').focus(); return; }
+  if (S.detail) { actions.close(); save(); render(); }
 });
 
 /* ---------- 시작 화면 (로고) ---------- */
 
 /** 흩날리는 꽃잎을 count장 만든다. 위치·크기·속도·방향을 조금씩 다르게 해서 자연스럽게 보이도록. */
-function scatterPetals(splash, count) {
+function scatterPetals(container, count) {
   const colors = ['#F7BACB', '#F3A9BE', '#F9C9D6', '#FBD3DD', '#EE93AD'];
   const rand = (min, max) => min + Math.random() * (max - min);
   let html = '';
@@ -314,7 +411,7 @@ function scatterPetals(splash, count) {
     ].join(';');
     html += `<svg class="fall" style="${style}" viewBox="-12 -28 24 30"><use href="#lp" fill="${colors[i % colors.length]}"/></svg>`;
   }
-  splash.insertAdjacentHTML('beforeend', html);
+  container.insertAdjacentHTML('beforeend', html);
 }
 
 function startSplash() {

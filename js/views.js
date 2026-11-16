@@ -24,6 +24,8 @@ const ICON = {
   checkSm: '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>',
   eye: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>',
   flower: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3"/><circle cx="7.5" cy="13" r="3"/><circle cx="16.5" cy="13" r="3"/><path d="M12 15v6"/></svg>',
+  trophy: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a2.5 2.5 0 0 0 2.6 4M16 6h2.5a2.5 2.5 0 0 1-2.6 4"/><path d="M12 13v4M9 20h6M10 17h4"/></svg>',
+  undo: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
   search: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
   x: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
 };
@@ -194,28 +196,15 @@ export function wishView({ S, lookup }) {
       : empty('아직 찜한 작품이 없어요', '추천 화면에서 하트를 누르면 여기에 모여요.'));
 }
 
-export function seenView({ S, lookup }) {
+export function seenView({ S, lookup, catalog, wipeArmed }) {
   const list = Object.keys(S.status).map(lookup).filter(Boolean);
   const c = counts(S);
+  const mins = catalog.at ? Math.round((Date.now() - catalog.at) / 60000) : 0;
+  const when = !catalog.at ? '아직 안 불러왔어요' : mins < 60 ? `${mins}분 전` : `${Math.round(mins / 60)}시간 전`;
   return `<header class="page-head"><span class="eyebrow">봤어요 ${c.seen}개 · 인생작 ${c.best}개</span><h1>본 작품</h1></header>` +
     (list.length ? `<div class="pgrid">${list.map((it) => pick(it, S)).join('')}</div>`
       : empty('아직 체크한 작품이 없어요', '본 작품을 체크하면 추천에서 빠져요.')) +
-    '<button type="button" class="ghost" data-act="more">본 작품 더 체크하기</button>';
-}
-
-/* ---------- 테마 · 설정 ---------- */
-
-export function themeView({ S, catalog, wipeArmed }) {
-  const mins = catalog.at ? Math.round((Date.now() - catalog.at) / 60000) : 0;
-  const when = !catalog.at ? '아직 안 불러왔어요' : mins < 60 ? `${mins}분 전` : `${Math.round(mins / 60)}시간 전`;
-  const themes = Object.entries(THEMES).map(([id, t]) =>
-    `<button type="button" class="theme" data-act="theme" data-v="${id}" aria-pressed="${S.theme === id}">` +
-    `<span class="theme-icon" style="background:${t.soft}">${FLOWER_ICONS[id]}</span>` +
-    `<span class="theme-text"><span class="theme-name">${t.name}</span><span class="theme-sub">${t.sub}${S.theme === id ? ' · 사용 중' : ''}</span></span>` +
-    `<span class="dots"><span style="background:${t.bg}"></span><span style="background:${t.accent}"></span><span style="background:${t.deep}"></span></span></button>`
-  ).join('');
-  return '<header class="page-head"><span class="eyebrow">앱 분위기 바꾸기</span><h1>꽃 테마</h1></header>' +
-    `<div class="themes" role="group" aria-label="꽃 테마">${themes}</div>` +
+    '<button type="button" class="ghost" data-act="more">본 작품 더 체크하기</button>' +
     '<h2 class="section-title">설정</h2><div class="settings">' +
     `<button type="button" class="ghost sm" data-act="reload">작품 목록 새로 불러오기 (${when})</button>` +
     '<button type="button" class="ghost sm" data-act="resurvey">취향 설문 다시 하기</button>' +
@@ -225,8 +214,90 @@ export function themeView({ S, catalog, wipeArmed }) {
     '<span>시청 서비스 정보 제공: <a href="https://www.justwatch.com" target="_blank" rel="noopener">JustWatch</a></span></div>';
 }
 
+/* ---------- 오른쪽 위 꽃 테마 버튼 ---------- */
+
+export function themeFab({ S }) {
+  return FLOWER_ICONS[S.theme] || FLOWER_ICONS.sakura;
+}
+
+export function themePop({ S }) {
+  return '<p class="theme-pop-title">꽃 테마</p><div class="theme-dots" role="group" aria-label="꽃 테마">' +
+    Object.entries(THEMES).map(([id, t]) =>
+      `<button type="button" class="theme-dot" data-act="theme" data-v="${id}" aria-pressed="${S.theme === id}">` +
+      `<span class="dot" style="background:${t.soft}">${FLOWER_ICONS[id]}</span>${t.name}</button>`
+    ).join('') + '</div>';
+}
+
+/* ---------- 오늘의 한 편 월드컵 ---------- */
+
+const roundName = (n) => (n === 2 ? '결승' : `${n}강`);
+
+function contender(it) {
+  const summary = it.overview || genreLine(it) || KINDS[it.kind];
+  return `<button type="button" class="contender" data-act="cupPick" data-v="${it.key}" aria-label="${esc(it.title)} 고르기">` +
+    poster(it, 'w342') +
+    `<span class="contender-title">${esc(it.title)}</span>` +
+    `<span class="tile-meta">${[KINDS[it.kind], it.year].filter(Boolean).join(' · ')}</span>` +
+    `<span class="contender-sum">${esc(summary)}</span></button>`;
+}
+
+export function cupView({ S, cup, cupCounts, catalog, lookup }) {
+  if (catalog.loading && !catalog.items.length) return loading('작품을 불러오는 중이에요');
+
+  if (cup.stage === 'match') {
+    const a = lookup(cup.round[cup.idx * 2]);
+    const b = lookup(cup.round[cup.idx * 2 + 1]);
+    if (!a || !b) return empty('작품 정보를 찾지 못했어요', '월드컵을 처음부터 다시 해 주세요.', '<br><br><button type="button" class="ghost sm" data-act="cupReset">처음으로</button>');
+    const matches = cup.round.length / 2;
+    const pct = Math.round((cup.done / cup.total) * 100);
+    return `<header class="page-head"><span class="eyebrow">${roundName(cup.round.length)} · ${cup.idx + 1} / ${matches}</span><h1>더 보고 싶은 쪽은?</h1></header>` +
+      `<div class="progress cup-progress" role="progressbar" aria-label="월드컵 진행" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>` +
+      `<div class="vs">${contender(a)}<span class="vs-badge" aria-hidden="true">VS</span>${contender(b)}</div>` +
+      '<div class="cup-foot">' +
+      (cup.history.length ? `<button type="button" class="mini" data-act="cupUndo">${ICON.undo}되돌리기</button>` : '') +
+      '<button type="button" class="mini" data-act="cupQuit">그만두기</button></div>';
+  }
+
+  if (cup.stage === 'done') {
+    const w = lookup(cup.winner);
+    if (!w) return empty('작품 정보를 찾지 못했어요', '월드컵을 처음부터 다시 해 주세요.', '<br><br><button type="button" class="ghost sm" data-act="cupReset">처음으로</button>');
+    const a = analyze(w, S, lookup);
+    const wished = S.wish.includes(w.key);
+    return '<header class="page-head"><span class="eyebrow">최종 선택</span><h1>오늘의 한 편은</h1></header>' +
+      '<div class="cup-win">' + poster(w, 'w500') +
+      `<h2 class="cup-win-title">${esc(w.title)}</h2>` +
+      `<span class="meta">${[KINDS[w.kind], w.year, genreLine(w)].filter(Boolean).join(' · ')}</span>` +
+      (w.overview ? `<p class="desc">${esc(w.overview)}</p>` : '') +
+      `<div class="box"><h2>이런 점이 잘 맞을 거예요</h2><ul>${a.reasons.slice(0, 3).map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` +
+      '<div class="cup-actions">' +
+      `<button type="button" class="primary" data-act="open" data-v="${w.key}">어디서 볼 수 있는지 보기</button>` +
+      `<button type="button" class="ghost" data-act="wish" data-v="${w.key}" aria-pressed="${wished}">${wished ? '찜 목록에 있어요' : '찜하기'}</button>` +
+      '<button type="button" class="ghost" data-act="cupReset">월드컵 다시 하기</button></div></div>';
+  }
+
+  // 준비 화면
+  const count = cupCounts[cup.source] || 0;
+  const sourceOpt = (id, label, hint, enabled) =>
+    `<button type="button" class="opt" data-act="cupSource" data-v="${id}" aria-pressed="${cup.source === id}"${enabled ? '' : ' disabled'}>` +
+    `<span class="opt-label">${label}</span><span class="opt-hint">${hint}</span></button>`;
+  const sizes = [4, 8, 16].map((n) =>
+    `<button type="button" class="chip" data-act="cupSize" data-v="${n}" aria-pressed="${cup.size === n}"${count >= n ? '' : ' disabled'}>${n}강</button>`
+  ).join('');
+  const startSize = [16, 8, 4].find((n) => n <= cup.size && n <= count);
+  return '<header class="page-head"><span class="eyebrow">고르기 힘들 땐</span><h1>오늘의 한 편 월드컵</h1></header>' +
+    '<p class="desc">두 작품 중 더 보고 싶은 쪽을 계속 고르면, 마지막에 남은 한 편이 오늘 볼 작품이에요.</p>' +
+    '<h2 class="section-title">어떤 작품으로 할까요?</h2>' +
+    '<div class="opts one">' +
+    sourceOpt('rec', '추천작으로', `내 취향 점수가 높은 작품 ${cupCounts.rec}개 중에서`, cupCounts.rec >= 4) +
+    sourceOpt('wish', '찜한 작품으로', cupCounts.wish >= 4 ? `찜 목록 ${cupCounts.wish}개 중에서` : '찜한 작품이 4개 이상이면 할 수 있어요', cupCounts.wish >= 4) +
+    '</div>' +
+    '<h2 class="section-title">몇 강으로 할까요?</h2>' +
+    `<div class="chips" role="group" aria-label="몇 강">${sizes}</div>` +
+    `<button type="button" class="primary cup-start" data-act="cupStart"${startSize ? '' : ' disabled'}>${startSize ? `${startSize}강 시작하기` : '작품이 부족해요'}</button>`;
+}
+
 export function navView({ S }) {
-  const tabs = [['rec', '추천', ICON.star], ['wish', '찜', ICON.heartLg], ['seen', '본 작품', ICON.eye], ['theme', '테마', ICON.flower]];
+  const tabs = [['rec', '추천', ICON.star], ['cup', '월드컵', ICON.trophy], ['wish', '찜', ICON.heartLg], ['seen', '본 작품', ICON.eye]];
   return tabs.map(([id, label, icon]) =>
     `<button type="button" data-act="tab" data-v="${id}"${S.tab === id ? ' aria-current="page"' : ''}>${icon}${label}</button>`
   ).join('');
