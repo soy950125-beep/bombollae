@@ -286,6 +286,27 @@ document.addEventListener('keydown', (e) => {
 
 /* ---------- 시작 화면 (로고) ---------- */
 
+/** 흩날리는 꽃잎을 count장 만든다. 위치·크기·속도·방향을 조금씩 다르게 해서 자연스럽게 보이도록. */
+function scatterPetals(splash, count) {
+  const colors = ['#F7BACB', '#F3A9BE', '#F9C9D6', '#FBD3DD', '#EE93AD'];
+  const rand = (min, max) => min + Math.random() * (max - min);
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const size = rand(9, 19).toFixed(0);
+    // 시작 시간을 음수로 주면 화면이 열리자마자 이미 내려오고 있는 꽃잎도 생긴다
+    const style = [
+      `left:${rand(-5, 100).toFixed(1)}%`,
+      `width:${size}px`, `height:${size}px`,
+      `--dx:${rand(-80, 80).toFixed(0)}px`,
+      `--rot:${rand(-320, 320).toFixed(0)}deg`,
+      `animation-delay:${rand(-1.8, 1.6).toFixed(2)}s`,
+      `animation-duration:${rand(2.8, 4.4).toFixed(2)}s`
+    ].join(';');
+    html += `<svg class="fall" style="${style}" viewBox="-12 -28 24 30"><use href="#lp" fill="${colors[i % colors.length]}"/></svg>`;
+  }
+  splash.insertAdjacentHTML('beforeend', html);
+}
+
 function startSplash() {
   const splash = document.getElementById('splash');
   if (!splash) return;
@@ -300,6 +321,7 @@ function startSplash() {
   };
   splash.addEventListener('click', close);      // 누르면 바로 넘어가기
   document.addEventListener('keydown', close);
+  if (!reduced) scatterPetals(splash, 28);
 
   // 글꼴이 준비된 뒤에 애니메이션을 시작해야 이름이 기본 글꼴로 깜빡이지 않는다 (최대 0.6초만 기다림)
   const fontsReady = document.fonts?.ready || Promise.resolve();
