@@ -2,7 +2,7 @@
 
 > "이거 볼래?" 본 작품은 빼고, 내 취향에 맞는 드라마·영화·애니만 **이유와 함께** 추천해 주는 웹 앱
 
-**배포 주소:** [여기에 Vercel 주소 넣기](https://)
+**👉 바로 써 보기: [bombollae.vercel.app](https://bombollae.vercel.app)**
 
 <!-- 스크린샷: docs 폴더에 이미지를 올리고 아래 줄의 주석을 풀어 주세요 -->
 <!-- <img src="docs/screens.png" alt="봄볼래 화면" width="100%"> -->
