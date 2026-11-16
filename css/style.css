@@ -24,7 +24,7 @@ b { font-weight: 700; color: var(--deep); }
 .deco { position: fixed; width: 150px; height: 150px; pointer-events: none; z-index: 0; }
 .deco svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .deco-tl { top: env(safe-area-inset-top, 0px); left: max(0px, calc((100vw - 480px) / 2)); transform: translate(-30px, -26px); }
-.deco-br { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); right: max(0px, calc((100vw - 480px) / 2)); transform: translate(30px, 0) rotate(180deg); }
+.deco-br { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); right: max(0px, calc((100vw - 480px) / 2)); transform: translate(30px, 0) rotate(180deg); }
 
 /* 작품이 많이 깔리는 화면에서는 오른쪽 아래 꽃이 글자 뒤로 비쳐 보여서 숨긴다 */
 body[data-view="rec"] .deco-br, body[data-view="cup"] .deco-br, body[data-view="wish"] .deco-br, body[data-view="seen"] .deco-br, body[data-view="watched"] .deco-br { display: none; }
@@ -99,9 +99,16 @@ body[data-view="rec"] .deco-br, body[data-view="cup"] .deco-br, body[data-view="
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px max(18px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }
 .bar .count { font-family: var(--font-display); font-size: 22px; }
-.nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
-.nav button { border: none; background: transparent; min-height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; color: var(--muted); }
+/* 아래 메뉴: 화면 끝에서 살짝 떠 있는 둥근 카드. 지금 있는 탭은 아이콘 뒤에 테마색 알약이 깔린다 */
+.nav { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: min(456px, calc(100% - 24px)); border-top: none; border-radius: 24px;
+  background: rgba(255, 255, 255, .96); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 8px 26px rgba(61, 43, 51, .14), 0 0 0 1px var(--line);
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px; }
+.nav button { border: none; background: transparent; min-height: 56px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11.5px; color: var(--muted); }
+.nav-ic { width: 54px; height: 30px; border-radius: 15px; display: flex; align-items: center; justify-content: center; transition: background-color .2s; }
 .nav button[aria-current="page"] { color: var(--deep); font-weight: 700; }
+.nav button[aria-current="page"] .nav-ic { background: var(--soft); }
+.nav button:not([aria-current="page"]):hover .nav-ic { background: rgba(0, 0, 0, .04); }
 
 /* 추천 카드 */
 .list { display: flex; flex-direction: column; gap: 14px; }

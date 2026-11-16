@@ -296,11 +296,33 @@ export function cupView({ S, cup, cupCounts, catalog, lookup }) {
     (startSize ? `<p class="fine" style="text-align:center">${startSize}편이 맞붙어요 · ${startSize - 1}번만 고르면 끝나요</p>` : '');
 }
 
+// 아래 메뉴 아이콘: 지금 있는 탭은 꽉 찬 모양, 나머지는 선만 있는 모양
+const NAV_ICONS = {
+  rec: [
+    '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9v11h5v-6h4v6h5V9"/></svg>',
+    '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.2L3.6 10.2V20.2h5.6v-5.6h5.6v5.6h5.6V10.2Z"/></svg>'
+  ],
+  cup: [
+    ICON.trophy,
+    '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z" fill="currentColor"/><path d="M8 6H5.5a2.5 2.5 0 0 0 2.6 4M16 6h2.5a2.5 2.5 0 0 1-2.6 4"/><path d="M12 13v4M9 20h6M10 17h4"/></svg>'
+  ],
+  wish: [
+    ICON.heartLg,
+    '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>'
+  ],
+  seen: [
+    '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="currentColor"/><circle cx="12" cy="12" r="3.2" fill="#FFFFFF" stroke="none"/></svg>'
+  ]
+};
+
 export function navView({ S }) {
-  const tabs = [['rec', '홈', ICON.home], ['cup', '월드컵', ICON.trophy], ['wish', '찜', ICON.heartLg], ['seen', '본 작품', ICON.eye]];
-  return tabs.map(([id, label, icon]) =>
-    `<button type="button" data-act="tab" data-v="${id}"${S.tab === id ? ' aria-current="page"' : ''}>${icon}${label}</button>`
-  ).join('');
+  const tabs = [['rec', '홈'], ['cup', '월드컵'], ['wish', '찜'], ['seen', '본 작품']];
+  return tabs.map(([id, label]) => {
+    const on = S.tab === id;
+    return `<button type="button" data-act="tab" data-v="${id}"${on ? ' aria-current="page"' : ''}>` +
+      `<span class="nav-ic">${NAV_ICONS[id][on ? 1 : 0]}</span>${label}</button>`;
+  }).join('');
 }
 
 /* ---------- 작품 상세 ---------- */
