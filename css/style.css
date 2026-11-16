@@ -174,6 +174,8 @@ b { font-weight: 700; color: var(--deep); }
 .splash.play .bloom { animation: splash-turn 1.9s cubic-bezier(.22, 1, .36, 1) forwards; }
 .splash-mark .core { transform-box: fill-box; transform-origin: center; transform: scale(0); }
 .splash.play .core { animation: splash-bloom .45s cubic-bezier(.34, 1.56, .64, 1) .85s forwards; }
+.splash-mark .stamens { transform-box: fill-box; transform-origin: center; transform: scale(.4); opacity: 0; }
+.splash.play .stamens { animation: splash-stamens .6s ease .7s forwards; }
 .splash-name { font-family: var(--font-display); font-size: 46px; line-height: 1.1; color: #3D2B33; letter-spacing: .02em; opacity: 0; transform: translateY(10px); }
 .splash-name span { color: #B34A6C; }
 .splash.play .splash-name { animation: splash-rise .6s ease 1.1s forwards; }
@@ -183,6 +185,7 @@ b { font-weight: 700; color: var(--deep); }
 .fall { position: absolute; z-index: 0; top: -30px; width: 15px; height: 15px; opacity: 0; pointer-events: none; }
 .splash.play .fall { animation: splash-fall 3.6s linear forwards; }
 @keyframes splash-bloom { to { transform: scale(1); } }
+@keyframes splash-stamens { to { transform: scale(1); opacity: 1; } }
 @keyframes splash-turn { from { transform: rotate(-40deg); } to { transform: rotate(0deg); } }
 @keyframes splash-rise { to { opacity: 1; transform: none; } }
 @keyframes splash-fall {
@@ -194,7 +197,7 @@ b { font-weight: 700; color: var(--deep); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before { animation: none !important; transition: none !important; }
   /* 움직임 줄이기 설정이면 꽃이 처음부터 다 핀 상태로 보여 준다 */
-  .splash-mark .petal, .splash-mark .core { transform: none; }
+  .splash-mark .petal, .splash-mark .core, .splash-mark .stamens { transform: none; opacity: 1; }
   .splash-name, .splash-tag { opacity: 1; transform: none; }
   .fall { display: none; }
 }

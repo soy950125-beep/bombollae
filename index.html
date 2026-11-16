@@ -30,6 +30,8 @@
     <defs>
       <radialGradient id="lg" cx="0" cy="0" r="28" gradientUnits="userSpaceOnUse"><stop offset="0.1" stop-color="#FFFFFF"/><stop offset="0.6" stop-color="#FBD3DD"/><stop offset="1" stop-color="#EE93AD"/></radialGradient>
       <path id="lp" d="M0 0C-8-4.6-13.8-16-9.2-25.3C-6.9-29.9-3.5-29.9 0-25.3C3.5-29.9 6.9-29.9 9.2-25.3C13.8-16 8-4.6 0 0Z"/>
+      <radialGradient id="cg" cx="-1.5" cy="-2" r="8" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFEFF3"/></radialGradient>
+      <linearGradient id="pg" x1="-2" y1="-3.4" x2="3.6" y2="3.4" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#EE8FAA"/><stop offset="1" stop-color="#B0456A"/></linearGradient>
     </defs>
     <g class="bloom" fill="url(#lg)" stroke="#E58BA4" stroke-width="0.7">
       <g><use class="petal p1" href="#lp"/></g>
@@ -38,10 +40,19 @@
       <g transform="rotate(216)"><use class="petal p4" href="#lp"/></g>
       <g transform="rotate(288)"><use class="petal p5" href="#lp"/></g>
     </g>
-    <g class="core"><circle r="8.5" fill="#B34A6C"/><path d="M-2.6-4.4L4.8 0L-2.6 4.4Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1" stroke-linejoin="round"/></g>
+    <!-- 꽃술: 가운데에서 뻗어 나오는 가는 선과 끝의 작은 점 -->
+    <g class="stamens">
+      <path d="M5.52 1.79L11.89 3.86M3.41 4.69L6.35 8.74M0 5.8L0 12.5M-3.41 4.69L-6.35 8.74M-5.52 1.79L-11.89 3.86M-5.52-1.79L-10.27-3.34M-3.41-4.69L-7.35-10.11M0-5.8L0-10.8M3.41-4.69L7.35-10.11M5.52-1.79L10.27-3.34" stroke="#E58BA4" stroke-width="0.6" stroke-linecap="round" fill="none"/>
+      <g fill="#C95A7B"><circle cx="11.89" cy="3.86" r="1"/><circle cx="6.35" cy="8.74" r="1"/><circle cx="0" cy="12.5" r="1"/><circle cx="-6.35" cy="8.74" r="1"/><circle cx="-11.89" cy="3.86" r="1"/><circle cx="-10.27" cy="-3.34" r="1"/><circle cx="-7.35" cy="-10.11" r="1"/><circle cx="0" cy="-10.8" r="1"/><circle cx="7.35" cy="-10.11" r="1"/><circle cx="10.27" cy="-3.34" r="1"/></g>
+    </g>
+    <!-- 가운데: 하얀 꽃 중심 + 모서리가 둥근 재생 표시 -->
+    <g class="core">
+      <circle r="6.6" fill="url(#cg)" stroke="#F2B3C4" stroke-width="0.7"/>
+      <path d="M-1.7-3.1L3.4 0L-1.7 3.1Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="1.6" stroke-linejoin="round"/>
+    </g>
   </svg>
   <div class="splash-name"><span>봄</span>볼래</div>
-  <div class="splash-tag">본 건 빼고, 볼 것만 골라 줄게</div>
+  <div class="splash-tag">당신이 기다리던 오늘의 한 편</div>
 </div>
 
 <div class="deco deco-tl" id="decoTL" aria-hidden="true"></div>
