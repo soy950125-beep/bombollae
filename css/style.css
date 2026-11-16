@@ -180,14 +180,14 @@ body[data-view="rec"] .deco-br, body[data-view="cup"] .deco-br, body[data-view="
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 body[data-view="find"] .deco-br { display: none; }
 
-/* 오른쪽 위 꽃 테마 버튼 */
-.theme-fab { position: fixed; z-index: 15; top: calc(16px + env(safe-area-inset-top, 0px)); right: max(14px, calc((100vw - 480px) / 2 + 14px), env(safe-area-inset-right, 0px));
+/* 오른쪽 위 꽃 테마 버튼: 페이지 맨 위에 붙어 있고 스크롤하면 같이 올라간다 */
+.theme-fab { position: absolute; z-index: 15; top: calc(16px + env(safe-area-inset-top, 0px)); right: max(14px, calc((100vw - 480px) / 2 + 14px), env(safe-area-inset-right, 0px));
   width: 40px; height: 40px; padding: 0; border-radius: 20px; border: 1.5px solid var(--line); background: var(--card);
   box-shadow: 0 3px 12px rgba(61, 43, 51, .12); display: flex; align-items: center; justify-content: center; transition: transform .15s; }
 .theme-fab svg { width: 26px; height: 26px; }
 .theme-fab:active { transform: scale(.94); }
 .theme-fab[aria-expanded="true"] { border-color: var(--deep); }
-.theme-pop { position: fixed; z-index: 16; top: calc(64px + env(safe-area-inset-top, 0px)); right: max(14px, calc((100vw - 480px) / 2 + 14px), env(safe-area-inset-right, 0px));
+.theme-pop { position: absolute; z-index: 16; top: calc(64px + env(safe-area-inset-top, 0px)); right: max(14px, calc((100vw - 480px) / 2 + 14px), env(safe-area-inset-right, 0px));
   max-width: calc(100vw - 28px); background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 12px 12px 10px;
   box-shadow: 0 12px 32px rgba(61, 43, 51, .18); animation: pop-in .18s ease; }
 .theme-pop-title { margin: 0 4px 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
