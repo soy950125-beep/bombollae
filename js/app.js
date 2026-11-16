@@ -327,7 +327,7 @@ function startSplash() {
   const fontsReady = document.fonts?.ready || Promise.resolve();
   Promise.race([fontsReady, new Promise((r) => setTimeout(r, 600))]).then(() => {
     splash.classList.add('play');
-    setTimeout(close, reduced ? 1500 : 3600);
+    setTimeout(close, reduced ? 1200 : 2800);
   });
 }
 
