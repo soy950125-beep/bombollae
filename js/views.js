@@ -299,6 +299,57 @@ export function cupView({ S, cup, cupCounts, catalog, lookup }) {
     (startSize ? `<p class="fine" style="text-align:center">${startSize}편이 맞붙어요 · ${startSize - 1}번만 고르면 끝나요</p>` : '');
 }
 
+/* ---------- 찾기 (검색 · 장르 · 정렬) ---------- */
+
+function findTile(it, S) {
+  const st = S.status[it.key];
+  const badge = st ? `<span class="find-badge">${st === 'best' ? '인생작' : '봤어요'}</span>` : '';
+  const meta = [KINDS[it.kind], it.year, it.vote ? `★ ${it.vote.toFixed(1)}` : ''].filter(Boolean).join(' · ');
+  return `<button type="button" class="pick" data-act="open" data-v="${it.key}" aria-label="${esc(it.title)} 자세히 보기">` +
+    poster(it, 'w185', badge) +
+    `<span class="pname">${esc(it.title)}</span><span class="pmeta">${meta}</span></button>`;
+}
+
+/** 결과 목록과 결과 수 (검색어를 칠 때는 이 부분만 다시 그린다) */
+export function findResults({ S, find, catalog, lookup }) {
+  if (find.q && find.loading) return { count: '찾는 중…', html: fullRow(loading('찾는 중이에요')) };
+  if (find.q && find.error) return { count: '', html: fullRow(empty('검색하지 못했어요', esc(find.error))) };
+  if (!find.q && catalog.loading && !catalog.items.length) return { count: '', html: fullRow(loading('작품을 불러오는 중이에요')) };
+
+  const source = find.q ? find.items : catalog.items;
+  const list = filterAndSort(source, find, S, lookup);
+  const count = find.q ? `「${esc(find.q)}」 ${list.length}개` : `${list.length}개`;
+  if (!list.length) {
+    const tips = [];
+    if (find.genre !== 'all' || find.kind !== 'all') tips.push('종류나 장르를 바꿔 보세요.');
+    if (find.unseenOnly) tips.push('"안 본 것만"을 끄면 본 작품도 보여요.');
+    if (find.q && !tips.length) tips.push('제목을 조금 다르게 써 보세요.');
+    return { count, html: fullRow(empty('맞는 작품이 없어요', tips.join(' '))) };
+  }
+  return { count, html: list.slice(0, 60).map((it) => findTile(it, S)).join('') };
+}
+
+export function findView(ctx) {
+  const { find } = ctx;
+  const kinds = ['all', ...Object.keys(KINDS)].map((k) =>
+    `<button type="button" class="chip" data-act="findKind" data-v="${k}" aria-pressed="${find.kind === k}">${k === 'all' ? '전체' : KINDS[k]}</button>`).join('');
+  const genres = [{ id: 'all', name: '모든 장르' }, ...GENRE_GROUPS].map((g) =>
+    `<button type="button" class="chip" data-act="findGenre" data-v="${g.id}" aria-pressed="${find.genre === g.id}">${g.name}</button>`).join('');
+  const sorts = SORTS.map((o) => `<option value="${o.id}"${find.sort === o.id ? ' selected' : ''}>${o.name}</option>`).join('');
+  const { count, html } = findResults(ctx);
+  return '<div class="find-top">' +
+    `<button type="button" class="icon-btn" data-act="findClose" aria-label="홈으로 돌아가기">${ICON.back}</button>` +
+    `<label class="search find-input">${ICON.search}<input id="fsearch" type="search" placeholder="작품 제목으로 찾기" aria-label="작품 제목으로 찾기" autocomplete="off" enterkeyhint="search" value="${esc(find.q)}">` +
+    `<button type="button" class="clear-btn" data-act="findClear" aria-label="검색어 지우기"${find.q ? '' : ' hidden'}>${ICON.x}</button></label></div>` +
+    `<div class="chips" role="group" aria-label="종류">${kinds}</div>` +
+    `<div class="chip-scroll" role="group" aria-label="장르">${genres}</div>` +
+    '<div class="find-bar">' +
+    `<span class="find-count" id="fcount" aria-live="polite">${count}</span>` +
+    `<label class="check"><input type="checkbox" id="funseen"${find.unseenOnly ? ' checked' : ''}><span>안 본 것만</span></label>` +
+    `<label class="sort"><span class="sr-only">정렬</span><select id="fsort">${sorts}</select></label></div>` +
+    `<div class="pgrid" id="fresults">${html}</div>`;
+}
+
 // 아래 메뉴 아이콘: 지금 있는 탭은 꽉 찬 모양, 나머지는 선만 있는 모양
 const NAV_ICONS = {
   rec: [
