@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>봄볼래 · 안 본 작품만 골라 주는 추천</title>
+<meta name="description" content="본 작품은 빼고, 내 취향에 맞는 드라마·영화·애니만 이유와 함께 추천해 주는 웹 앱">
+<meta name="theme-color" content="#FFF6F8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- 꽃 그림에서 여러 번 쓰는 모양(꽃잎, 그라데이션)을 한 번만 정의해 둔다 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="sk" cx="0" cy="0" r="24" gradientUnits="userSpaceOnUse"><stop offset="0.12" stop-color="#FFFFFF"/><stop offset="0.62" stop-color="#FBD3DD"/><stop offset="1" stop-color="#F19CB4"/></radialGradient>
+    <path id="skp" d="M0 0C-7-4-12-14-8-22C-6-26-3-26 0-22C3-26 6-26 8-22C12-14 7-4 0 0Z" fill="url(#sk)" stroke="#EFA3B8" stroke-width="0.6"/>
+    <g id="skf"><use href="#skp"/><use href="#skp" transform="rotate(72)"/><use href="#skp" transform="rotate(144)"/><use href="#skp" transform="rotate(216)"/><use href="#skp" transform="rotate(288)"/><path d="M0 0L8 0M0 0L5.7 5.7M0 0L0 8M0 0L-5.7 5.7M0 0L-8 0M0 0L-5.7-5.7M0 0L0-8M0 0L5.7-5.7" stroke="#D96A89" stroke-width="0.7" stroke-linecap="round"/><circle r="2.4" fill="#E8899F"/></g>
+    <radialGradient id="sfg" cx="0" cy="0" r="42" gradientUnits="userSpaceOnUse"><stop offset="0.35" stop-color="#F2B52A"/><stop offset="1" stop-color="#FCE17A"/></radialGradient>
+    <linearGradient id="tlg" x1="0" y1="-22" x2="0" y2="8" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FBC9B9"/><stop offset="1" stop-color="#EE8A72"/></linearGradient>
+  </defs>
+</svg>
+
+<div class="deco deco-tl" id="decoTL" aria-hidden="true"></div>
+<div class="deco deco-br" id="decoBR" aria-hidden="true"></div>
+<main class="app" id="view"></main>
+<nav class="nav" id="nav" aria-label="메뉴" hidden></nav>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

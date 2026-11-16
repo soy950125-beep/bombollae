@@ -1,0 +1,134 @@
+// TMDB에서 작품 정보를 가져오는 파일.
+// 브라우저는 TMDB에 직접 묻지 않고 우리 서버 함수(/api/tmdb)에 묻는다.
+// 서버 함수가 숨겨 둔 키를 붙여서 TMDB에 대신 물어봐 주기 때문에, 키가 브라우저에 절대 노출되지 않는다.
+
+import { GENRE_TAGS, EXCLUDE_GENRES } from './config.js';
+
+export class TmdbError extends Error {
+  constructor(status, code) {
+    super(`TMDB request failed (${status})`);
+    this.status = status;
+    this.code = code;
+  }
+}
+
+/** /api/tmdb 프록시를 통해 TMDB API를 호출한다. params 값이 null이면 그 항목은 빼고 보낸다. */
+export async function tmdb(path, params = {}) {
+  const query = new URLSearchParams({ path });
+  const merged = { language: 'ko-KR', ...params };
+  for (const [key, value] of Object.entries(merged)) {
+    if (value !== null && value !== undefined) query.set(key, String(value));
+  }
+  let res;
+  try {
+    res = await fetch(`/api/tmdb?${query}`);
+  } catch {
+    throw new TmdbError(0, 'network');
+  }
+  if (!res.ok) {
+    let code = '';
+    try { code = (await res.json()).error || ''; } catch { /* 본문 없음 */ }
+    throw new TmdbError(res.status, code);
+  }
+  return res.json();
+}
+
+/** 오류를 사람이 읽을 수 있는 문장으로 바꾼다. */
+export function errorMessage(err) {
+  if (err?.code === 'missing_token') return '서버에 TMDB 키가 아직 설정되지 않았어요. Vercel 환경 변수 TMDB_TOKEN을 확인해 주세요.';
+  if (err?.status === 401) return 'TMDB 키가 맞지 않아요. Vercel 환경 변수 TMDB_TOKEN 값을 다시 확인해 주세요.';
+  if (err?.status === 429) return '요청이 너무 많아요. 잠시 뒤에 다시 시도해 주세요.';
+  if (err?.status === 404) return '서버 함수를 찾지 못했어요. Vercel로 배포한 주소에서 열었는지 확인해 주세요.';
+  return 'TMDB에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.';
+}
+
+/** TMDB 응답 한 건을 앱에서 쓰기 좋은 모양으로 바꾼다. 추천에 안 맞는 작품이면 null. */
+export function normalize(raw, typeHint) {
+  const type = raw.media_type || typeHint;
+  if (type !== 'tv' && type !== 'movie') return null;
+
+  const genres = raw.genre_ids || (raw.genres || []).map((g) => g.id);
+  if (genres.some((id) => EXCLUDE_GENRES.includes(id))) return null;
+
+  // 장르 → 취향 꼬리표
+  const tags = [];
+  genres.forEach((id) => (GENRE_TAGS[id] || []).forEach((t) => { if (!tags.includes(t)) tags.push(t); }));
+  if (!tags.length) tags.push('mood');
+
+  // 장르 → 피하고 싶은 요소 (설문 3번과 비교)
+  const dis = [];
+  if (genres.includes(10752) || genres.includes(10768)) dis.push('violent');
+  if (genres.includes(27)) dis.push('scary');
+  const eventful = [28, 80, 9648, 53, 10759, 27];
+  if (genres.includes(18) && !genres.some((id) => eventful.includes(id))) dis.push('slowburn');
+
+  return {
+    key: `${type}-${raw.id}`,
+    id: raw.id,
+    type,
+    title: raw.name || raw.title || '제목 없음',
+    kind: genres.includes(16) ? 'anime' : type === 'tv' ? 'drama' : 'movie',
+    g: genres,
+    tags,
+    dis,
+    poster: raw.poster_path || '',
+    backdrop: raw.backdrop_path || '',
+    year: (raw.first_air_date || raw.release_date || '').slice(0, 4),
+    overview: raw.overview || '',
+    vote: raw.vote_average || 0,
+    pop: raw.popularity || 0
+  };
+}
+
+// 처음 불러올 작품 목록: 이번 주 인기작 + 한국 OTT에서 볼 수 있는 작품 + 일본 애니 + 평점 높은 작품
+const OTT_KR = { watch_region: 'KR', with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc' };
+const CATALOG_REQUESTS = [
+  ['/trending/all/week', { page: 1 }, null],
+  ['/trending/all/week', { page: 2 }, null],
+  ['/discover/tv', { ...OTT_KR, with_original_language: 'ko', page: 1 }, 'tv'],
+  ['/discover/tv', { ...OTT_KR, with_original_language: 'ko', page: 2 }, 'tv'],
+  ['/discover/tv', { ...OTT_KR, with_original_language: 'ko', page: 3 }, 'tv'],
+  ['/discover/tv', { ...OTT_KR, page: 1 }, 'tv'],
+  ['/discover/tv', { with_genres: '16', with_original_language: 'ja', sort_by: 'popularity.desc', page: 1 }, 'tv'],
+  ['/discover/tv', { with_genres: '16', with_original_language: 'ja', sort_by: 'popularity.desc', page: 2 }, 'tv'],
+  ['/discover/movie', { ...OTT_KR, region: 'KR', page: 1 }, 'movie'],
+  ['/discover/movie', { ...OTT_KR, region: 'KR', page: 2 }, 'movie'],
+  ['/discover/movie', { ...OTT_KR, with_original_language: 'ko', page: 1 }, 'movie'],
+  ['/discover/movie', { with_genres: '16', sort_by: 'popularity.desc', 'vote_count.gte': 300, page: 1 }, 'movie'],
+  ['/tv/top_rated', { page: 1 }, 'tv'],
+  ['/movie/top_rated', { page: 1 }, 'movie']
+];
+
+/** 추천 후보 목록을 한 번에 불러온다. 일부 요청이 실패해도 성공한 것만 모아서 쓴다. */
+export async function fetchCatalog() {
+  const results = await Promise.allSettled(
+    CATALOG_REQUESTS.map(([path, params, type]) => tmdb(path, params).then((data) => ({ data, type })))
+  );
+  const seen = new Set();
+  const items = [];
+  let firstError = null;
+  for (const r of results) {
+    if (r.status !== 'fulfilled') { firstError = firstError || r.reason; continue; }
+    for (const raw of r.value.data.results || []) {
+      const item = normalize(raw, r.value.type);
+      if (item && item.poster && !seen.has(item.key)) { seen.add(item.key); items.push(item); }
+    }
+  }
+  if (!items.length) throw firstError || new TmdbError(0, 'empty');
+  return items;
+}
+
+/** 제목으로 검색 (드라마·영화 함께) */
+export async function searchTitles(query) {
+  const data = await tmdb('/search/multi', { query, include_adult: 'false', page: 1 });
+  return (data.results || []).map((raw) => normalize(raw, null)).filter(Boolean);
+}
+
+/** 작품 상세 정보 + 한국에서 볼 수 있는 서비스 */
+export async function fetchDetail(item) {
+  const [data, providers] = await Promise.all([
+    tmdb(`/${item.type}/${item.id}`),
+    tmdb(`/${item.type}/${item.id}/watch/providers`, { language: null })
+  ]);
+  return { data, providers: providers.results?.KR ?? null };
+}
