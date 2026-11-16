@@ -142,7 +142,7 @@ export function watchedView(ctx) {
 /* ---------- 추천 · 찜 · 본 작품 ---------- */
 
 /** 가로 줄 안의 작품 한 칸: 포스터 + 제목 + 줄거리 요약 + 찜 버튼 */
-function tile({ item }, S) {
+function tile({ item }, S, justWished) {
   const wished = S.wish.includes(item.key);
   const summary = item.overview || genreLine(item) || KINDS[item.kind];
   return '<div class="tile">' +
@@ -151,12 +151,12 @@ function tile({ item }, S) {
     `<span class="tile-title">${esc(item.title)}</span>` +
     `<span class="tile-meta">${[KINDS[item.kind], item.year].filter(Boolean).join(' · ')}</span>` +
     `<span class="tile-sum">${esc(summary)}</span></button>` +
-    `<button type="button" class="tile-heart" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${esc(item.title)} ${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
+    `<button type="button" class="tile-heart${justWished === item.key ? ' heart-pop' : ''}" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${esc(item.title)} ${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
     '</div>';
 }
 
 /** 맨 위 큰 카드: 오늘의 1순위 */
-function heroCard({ item, a }, S) {
+function heroCard({ item, a }, S, justWished) {
   const wished = S.wish.includes(item.key);
   const img = item.backdrop ? `${IMG_BASE}w780${item.backdrop}` : item.poster ? `${IMG_BASE}w500${item.poster}` : '';
   const style = `background-color:${colorFor(item.key)}${img ? `;background-image:url(${img})` : ''}`;
@@ -168,11 +168,11 @@ function heroCard({ item, a }, S) {
     `<p class="hero-reason">${esc(a.reasons[0])}</p>` +
     '<div class="hero-actions">' +
     `<button type="button" class="hero-open" data-act="open" data-v="${item.key}">자세히 보기</button>` +
-    `<button type="button" class="hero-heart" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
+    `<button type="button" class="hero-heart${justWished === item.key ? ' heart-pop' : ''}" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
     '</div></article>';
 }
 
-export function recView({ S, catalog, lookup }) {
+export function recView({ S, catalog, lookup, justWished }) {
   const head = '<header class="page-head"><h1>오늘의 추천</h1></header>' +
     `<button type="button" class="search search-entry" data-act="findOpen">${ICON.search}<span>보고 싶은 작품 찾기</span></button>`;
   if (catalog.loading && !catalog.items.length) return head + loading('작품을 불러오는 중이에요');
@@ -187,15 +187,15 @@ export function recView({ S, catalog, lookup }) {
   const shelves = rows.map((row) =>
     `<section class="shelf" aria-label="${esc(row.title)}">` +
     `<h2 class="shelf-title">${esc(row.title)}</h2>` +
-    `<div class="shelf-scroll" data-row="${esc(row.id)}">${row.items.map((x) => tile(x, S)).join('')}</div></section>`
+    `<div class="shelf-scroll" data-row="${esc(row.id)}">${row.items.map((x) => tile(x, S, justWished)).join('')}</div></section>`
   ).join('');
-  return head + kindChips('filter', S.filter) + heroCard(hero, S) + shelves;
+  return head + kindChips('filter', S.filter) + heroCard(hero, S, justWished) + shelves;
 }
 
-export function wishView({ S, lookup }) {
+export function wishView({ S, lookup, justWished }) {
   const list = S.wish.map(lookup).filter(Boolean).map((item) => ({ item }));
   return '<header class="page-head"><span class="eyebrow">나중에 볼 작품</span><h1>찜 목록</h1></header>' +
-    (list.length ? `<div class="tile-grid">${list.map((x) => tile(x, S)).join('')}</div>`
+    (list.length ? `<div class="tile-grid">${list.map((x) => tile(x, S, justWished)).join('')}</div>`
       : empty('아직 찜한 작품이 없어요', '추천 화면에서 하트를 누르면 여기에 모여요.'));
 }
 
@@ -274,7 +274,7 @@ export function cupView({ S, cup, cupCounts, catalog, lookup }) {
       `<div class="box"><h2>이런 점이 잘 맞을 거예요</h2><ul>${a.reasons.slice(0, 3).map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` +
       '<div class="cup-actions">' +
       `<button type="button" class="primary" data-act="open" data-v="${w.key}">어디서 볼 수 있는지 보기</button>` +
-      `<button type="button" class="ghost" data-act="wish" data-v="${w.key}" aria-pressed="${wished}">${wished ? '찜 목록에 있어요' : '찜하기'}</button>` +
+      `<button type="button" class="ghost wish-btn" data-act="wish" data-v="${w.key}" aria-pressed="${wished}">${wished ? ICON.heartSolid : ICON.heart}${wished ? '찜했어요' : '찜하기'}</button>` +
       '<button type="button" class="ghost" data-act="cupReset">월드컵 다시 하기</button></div></div>';
   }
 
@@ -355,6 +355,6 @@ export function sheetView({ S, details, lookup }) {
     `<div class="box"><h2>어디서 볼 수 있어요?</h2>${where}</div>` +
     '<div class="panel-actions">' +
     (watched ? '' : `<button type="button" class="ghost" data-act="nope" data-v="${it.key}">별로예요</button><button type="button" class="ghost" data-act="seen" data-v="${it.key}">이미 봤어요</button>`) +
-    `<button type="button" class="primary" data-act="wish" data-v="${it.key}" aria-pressed="${wished}">${wished ? '찜 취소' : '찜하기'}</button></div>` +
+    `<button type="button" class="primary wish-btn" data-act="wish" data-v="${it.key}" aria-pressed="${wished}">${wished ? ICON.heartSolid : ICON.heart}${wished ? '찜했어요' : '찜하기'}</button></div>` +
     `<a class="fine" href="https://www.themoviedb.org/${it.type}/${it.id}" target="_blank" rel="noopener">TMDB에서 자세히 보기</a></div>`;
 }

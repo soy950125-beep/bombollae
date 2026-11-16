@@ -41,6 +41,7 @@ const catalog = { items: savedCatalog?.items || [], at: savedCatalog?.at || 0, l
 const search = { q: '', items: [], loading: false, error: '', seq: 0, timer: null };
 const details = {};
 let wipeArmed = false;
+let justWished = null;  // 방금 찜한 작품 (그 하트만 톡 커지는 효과를 주려고)
 let themeOpen = false; // 오른쪽 위 테마 버튼의 꽃 목록이 열려 있는지
 
 // 찾기 화면 (검색어·종류·장르·정렬). 검색어가 있으면 TMDB 전체에서, 없으면 불러온 목록에서 찾는다
@@ -144,7 +145,7 @@ async function loadDetail(item) {
 
 const $ = (sel) => document.querySelector(sel);
 const context = () => ({
-  S, catalog, search, details, lookup, wipeArmed, cup, find,
+  S, catalog, search, details, lookup, wipeArmed, cup, find, justWished,
   cupCounts: S.tab === 'cup' && cup.stage === 'setup' ? { rec: cupPool('rec').length, wish: cupPool('wish').length } : {}
 });
 
@@ -259,6 +260,7 @@ function render() {
   pop.hidden = !themeOpen;
   pop.innerHTML = themeOpen ? View.themePop(ctx) : '';
   paintSheet();
+  justWished = null; // 효과는 한 번만
 
   if (active) {
     const [act, v] = active.split('|');
@@ -336,7 +338,7 @@ const actions = {
   wish: (key) => {
     const adding = !S.wish.includes(key);
     toggle(S.wish, key);
-    if (adding) remember(lookup(key));
+    if (adding) { remember(lookup(key)); justWished = key; }
     toast(adding ? '찜 목록에 담았어요' : '찜 목록에서 뺐어요');
   },
   seen: (key) => {
