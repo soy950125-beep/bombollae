@@ -48,7 +48,7 @@ const find = { open: false, q: '', kind: 'all', genre: 'all', sort: 'rec', unsee
 
 // 오늘의 한 편 월드컵 (새로고침하면 처음부터)
 //   round: 이번 라운드 작품키들, next: 이긴 작품키들, idx: 몇 번째 대결인지, history: 되돌리기용
-const cup = { stage: 'setup', source: 'rec', size: 8, round: [], next: [], idx: 0, done: 0, total: 0, winner: null, history: [] };
+const cup = { stage: 'setup', source: 'rec', round: [], next: [], idx: 0, done: 0, total: 0, winner: null, history: [] };
 
 const save = () => writeJSON(STATE_KEY, S);
 
@@ -354,10 +354,9 @@ const actions = {
 
   // 월드컵
   cupSource: (v) => { cup.source = v; },
-  cupSize: (v) => { cup.size = Number(v); },
   cupStart: () => {
     const pool = cupPool(cup.source);
-    const size = [16, 8, 4].find((n) => n <= cup.size && n <= pool.length);
+    const size = pool.length >= 8 ? 8 : pool.length >= 4 ? 4 : 0; // 8편이 되면 8강, 모자라면 4강
     if (!size) { toast('작품이 4개 이상 있어야 해요'); return; }
     // 추천작은 점수 높은 순으로 자른 뒤 섞고, 찜은 섞은 뒤 자른다
     const keys = cup.source === 'rec' ? shuffle(pool.slice(0, size)) : shuffle(pool).slice(0, size);
