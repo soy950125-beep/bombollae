@@ -24,6 +24,31 @@
   </defs>
 </svg>
 
+<!-- 시작 화면: 꽃잎이 피어나고 로고가 뜬 뒤 사라진다. 누르면 바로 넘어간다. -->
+<div class="splash" id="splash" aria-hidden="true">
+  <svg class="splash-mark" viewBox="-32 -32 64 64">
+    <defs>
+      <radialGradient id="lg" cx="0" cy="0" r="28" gradientUnits="userSpaceOnUse"><stop offset="0.1" stop-color="#FFFFFF"/><stop offset="0.6" stop-color="#FBD3DD"/><stop offset="1" stop-color="#EE93AD"/></radialGradient>
+      <path id="lp" d="M0 0C-8-4.6-13.8-16-9.2-25.3C-6.9-29.9-3.5-29.9 0-25.3C3.5-29.9 6.9-29.9 9.2-25.3C13.8-16 8-4.6 0 0Z"/>
+    </defs>
+    <g class="bloom" fill="url(#lg)" stroke="#E58BA4" stroke-width="0.7">
+      <g><use class="petal p1" href="#lp"/></g>
+      <g transform="rotate(72)"><use class="petal p2" href="#lp"/></g>
+      <g transform="rotate(144)"><use class="petal p3" href="#lp"/></g>
+      <g transform="rotate(216)"><use class="petal p4" href="#lp"/></g>
+      <g transform="rotate(288)"><use class="petal p5" href="#lp"/></g>
+    </g>
+    <g class="core"><circle r="8.5" fill="#B34A6C"/><path d="M-2.6-4.4L4.8 0L-2.6 4.4Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1" stroke-linejoin="round"/></g>
+  </svg>
+  <div class="splash-name"><span>봄</span>볼래</div>
+  <div class="splash-tag">안 본 작품만, 이유와 함께</div>
+  <svg class="fall" style="left:14%;--dx:46px;--rot:260deg;animation-delay:.15s" viewBox="-12 -28 24 30"><use href="#lp" fill="#F7BACB"/></svg>
+  <svg class="fall" style="left:32%;--dx:-30px;--rot:-200deg;animation-delay:.6s;width:11px;height:11px" viewBox="-12 -28 24 30"><use href="#lp" fill="#F3A9BE"/></svg>
+  <svg class="fall" style="left:58%;--dx:38px;--rot:300deg;animation-delay:.3s" viewBox="-12 -28 24 30"><use href="#lp" fill="#F9C9D6"/></svg>
+  <svg class="fall" style="left:76%;--dx:-44px;--rot:-240deg;animation-delay:.85s;width:12px;height:12px" viewBox="-12 -28 24 30"><use href="#lp" fill="#F7BACB"/></svg>
+  <svg class="fall" style="left:90%;--dx:-20px;--rot:180deg;animation-delay:.45s;width:10px;height:10px" viewBox="-12 -28 24 30"><use href="#lp" fill="#F3A9BE"/></svg>
+</div>
+
 <div class="deco deco-tl" id="decoTL" aria-hidden="true"></div>
 <div class="deco deco-br" id="decoBR" aria-hidden="true"></div>
 <main class="app" id="view"></main>

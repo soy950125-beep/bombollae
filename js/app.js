@@ -284,7 +284,33 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && S.detail) { actions.close(); save(); render(); }
 });
 
+/* ---------- 시작 화면 (로고) ---------- */
+
+function startSplash() {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    splash.classList.add('splash-out');
+    setTimeout(() => splash.remove(), 500);
+    document.removeEventListener('keydown', close);
+  };
+  splash.addEventListener('click', close);      // 누르면 바로 넘어가기
+  document.addEventListener('keydown', close);
+
+  // 글꼴이 준비된 뒤에 애니메이션을 시작해야 이름이 기본 글꼴로 깜빡이지 않는다 (최대 0.6초만 기다림)
+  const fontsReady = document.fonts?.ready || Promise.resolve();
+  Promise.race([fontsReady, new Promise((r) => setTimeout(r, 600))]).then(() => {
+    splash.classList.add('play');
+    setTimeout(close, reduced ? 900 : 2300);
+  });
+}
+
 /* ---------- 시작 ---------- */
 document.title = `${APP_NAME} · 안 본 작품만 골라 주는 추천`;
+startSplash();
 render();
 if (S.screen !== 'survey') loadCatalog();
