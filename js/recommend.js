@@ -7,7 +7,7 @@
 //   + 1점    TMDB 평점 8점 이상 (그 아래는 6점 기준으로 조금씩 가감)
 //   - 4점    피하고 싶다고 고른 요소가 있을 때
 
-import { REASON, WARN } from './config.js';
+import { REASON, WARN, ROW_TITLE } from './config.js';
 
 export function analyze(item, state, lookup) {
   let score = 0;
@@ -66,4 +66,52 @@ export function rankCandidates(catalog, state, lookup) {
     })
     .map((item) => ({ item, a: analyze(item, state, lookup) }))
     .sort((x, y) => y.a.score - x.a.score || y.item.pop - x.item.pop);
+}
+
+/**
+ * 추천 화면 구성: 1순위 작품 하나(hero) + 이유별 가로 줄(rows).
+ * 같은 작품이 여러 줄에 겹쳐 나오지 않도록, 앞 줄에서 쓴 작품은 다음 줄에서 뺀다.
+ */
+export function buildShelves(ranked, state, lookup) {
+  if (!ranked.length) return { hero: null, rows: [] };
+  const hero = ranked[0];
+  const used = new Set([hero.item.key]);
+  const rows = [];
+
+  const addRow = (id, title, test, { sort, limit = 12, min = 3 } = {}) => {
+    let pool = ranked.filter((x) => !used.has(x.item.key) && test(x.item));
+    if (sort) pool = [...pool].sort(sort);
+    const items = pool.slice(0, limit);
+    if (items.length < min) return;
+    items.forEach((x) => used.add(x.item.key));
+    rows.push({ id, title, items });
+  };
+
+  // 1) 인생작과 비슷한 작품 (가장 개인적인 줄이라 맨 위에)
+  const bests = Object.entries(state.status)
+    .filter(([, status]) => status === 'best')
+    .map(([key]) => lookup(key))
+    .filter(Boolean)
+    .slice(0, 2);
+  for (const best of bests) {
+    const genres = best.g.filter((id) => id !== 18);
+    const shared = (it) => it.g.filter((id) => genres.includes(id)).length;
+    addRow(`like-${best.key}`, `인생작 「${best.title}」와 비슷한`, (it) => shared(it) > 0,
+      { sort: (x, y) => shared(y.item) - shared(x.item) || y.a.score - x.a.score });
+  }
+
+  // 2) 설문에서 고른 '중요한 것'마다 한 줄
+  for (const tag of state.loves) addRow(`tag-${tag}`, ROW_TITLE[tag], (it) => it.tags.includes(tag));
+
+  // 3) 보는 습관에 맞는 줄
+  const has = (it, ...tags) => tags.some((t) => it.tags.includes(t));
+  if (state.habit === 'binge') addRow('habit', '주말에 몰아보기 좋은 작품', (it) => it.type === 'tv' && has(it, 'fast', 'twist'));
+  if (state.habit === 'daily') addRow('habit', '하루 한 편씩 보기 좋은 작품', (it) => has(it, 'mood', 'real'));
+  if (state.habit === 'light') addRow('habit', '틀어놓고 편하게 보기 좋은 작품', (it) => has(it, 'fun'));
+
+  // 4) 평이 좋은 작품, 5) 나머지는 인기순
+  addRow('top', '평이 아주 좋은 작품', (it) => it.vote >= 7.8, { sort: (x, y) => y.item.vote - x.item.vote });
+  addRow('popular', '지금 많이 보는 작품', () => true, { sort: (x, y) => y.item.pop - x.item.pop, min: 1 });
+
+  return { hero, rows };
 }

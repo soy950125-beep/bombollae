@@ -5,7 +5,7 @@ import {
   APP_NAME, KINDS, KIND_HINT, TAGS, TAG_HINT, DIS, DIS_HINT, HABITS, THEMES, GENRE_NAME, IMG_BASE, POSTER_COLORS
 } from './config.js';
 import { FLOWER_ICONS } from './flowers.js';
-import { analyze, rankCandidates } from './recommend.js';
+import { analyze, rankCandidates, buildShelves } from './recommend.js';
 
 /* ---------- 작은 도우미 ---------- */
 
@@ -18,6 +18,7 @@ const ICON = {
   star: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
   heart: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   heartLg: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  heartSolid: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   heartFill: '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   check: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>',
   checkSm: '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>',
@@ -136,35 +137,61 @@ export function watchedView(ctx) {
 
 /* ---------- 추천 · 찜 · 본 작품 ---------- */
 
-function card({ item, a }, S) {
+/** 가로 줄 안의 작품 한 칸: 포스터 + 제목 + 줄거리 요약 + 찜 버튼 */
+function tile({ item }, S) {
   const wished = S.wish.includes(item.key);
+  const summary = item.overview || genreLine(item) || KINDS[item.kind];
+  return '<div class="tile">' +
+    `<button type="button" class="tile-open" data-act="open" data-v="${item.key}" aria-label="${esc(item.title)} 자세히 보기">` +
+    poster(item, 'w342') +
+    `<span class="tile-title">${esc(item.title)}</span>` +
+    `<span class="tile-meta">${[KINDS[item.kind], item.year].filter(Boolean).join(' · ')}</span>` +
+    `<span class="tile-sum">${esc(summary)}</span></button>` +
+    `<button type="button" class="tile-heart" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${esc(item.title)} ${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
+    '</div>';
+}
+
+/** 맨 위 큰 카드: 오늘의 1순위 */
+function heroCard({ item, a }, S) {
+  const wished = S.wish.includes(item.key);
+  const img = item.backdrop ? `${IMG_BASE}w780${item.backdrop}` : item.poster ? `${IMG_BASE}w500${item.poster}` : '';
+  const style = `background-color:${colorFor(item.key)}${img ? `;background-image:url(${img})` : ''}`;
   const meta = [KINDS[item.kind], item.year, genreLine(item)].filter(Boolean).join(' · ');
-  return '<article class="card">' +
-    `<button type="button" class="card-open" data-act="open" data-v="${item.key}" aria-label="${esc(item.title)} 자세히 보기">` +
-    poster(item, 'w185') +
-    `<span class="card-text"><span class="meta">${meta}</span><span class="title">${esc(item.title)}</span><span class="reason">${esc(a.reasons[0])}</span></span></button>` +
-    `<div class="card-actions"><button type="button" class="mini" data-act="wish" data-v="${item.key}" aria-pressed="${wished}">${ICON.heart}${wished ? '찜했어요' : '찜'}</button>` +
-    `<button type="button" class="mini" data-act="seen" data-v="${item.key}">${ICON.check}이미 봤어요</button></div></article>`;
+  return `<article class="hero${img ? ' has-img' : ''}" style="${style}">` +
+    '<span class="hero-eyebrow">오늘의 1순위</span>' +
+    `<h2 class="hero-title">${esc(item.title)}</h2>` +
+    `<span class="hero-meta">${meta}</span>` +
+    `<p class="hero-reason">${esc(a.reasons[0])}</p>` +
+    '<div class="hero-actions">' +
+    `<button type="button" class="hero-open" data-act="open" data-v="${item.key}">자세히 보기</button>` +
+    `<button type="button" class="hero-heart" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
+    '</div></article>';
 }
 
 export function recView({ S, catalog, lookup }) {
-  const head = `<header class="page-head"><h1>오늘의 추천</h1></header>`;
+  const head = '<header class="page-head"><h1>오늘의 추천</h1></header>';
   if (catalog.loading && !catalog.items.length) return head + loading('작품을 불러오는 중이에요');
   if (catalog.error && !catalog.items.length) {
     return head + empty('작품을 불러오지 못했어요', esc(catalog.error), '<br><br><button type="button" class="ghost sm" data-act="reload">다시 불러오기</button>');
   }
-  const list = rankCandidates(catalog.items, S, lookup);
-  const body = list.length
-    ? `<div class="list">${list.slice(0, 20).map((x) => card(x, S)).join('')}</div>`
-    : empty('추천할 작품을 다 봤어요!', '다른 종류를 골라 보거나, 테마 탭에서 목록을 새로 불러와 보세요.');
-  return head + kindChips('filter', S.filter) + body;
+  const ranked = rankCandidates(catalog.items, S, lookup);
+  if (!ranked.length) {
+    return head + kindChips('filter', S.filter) + empty('추천할 작품을 다 봤어요!', '다른 종류를 골라 보거나, 테마 탭에서 목록을 새로 불러와 보세요.');
+  }
+  const { hero, rows } = buildShelves(ranked, S, lookup);
+  const shelves = rows.map((row) =>
+    `<section class="shelf" aria-label="${esc(row.title)}">` +
+    `<h2 class="shelf-title">${esc(row.title)}</h2>` +
+    `<div class="shelf-scroll" data-row="${esc(row.id)}">${row.items.map((x) => tile(x, S)).join('')}</div></section>`
+  ).join('');
+  return head + kindChips('filter', S.filter) + heroCard(hero, S) + shelves;
 }
 
 export function wishView({ S, lookup }) {
-  const list = S.wish.map(lookup).filter(Boolean).map((item) => ({ item, a: analyze(item, S, lookup) }));
+  const list = S.wish.map(lookup).filter(Boolean).map((item) => ({ item }));
   return '<header class="page-head"><span class="eyebrow">나중에 볼 작품</span><h1>찜 목록</h1></header>' +
-    (list.length ? `<div class="list">${list.map((x) => card(x, S)).join('')}</div>`
-      : empty('아직 찜한 작품이 없어요', '추천 카드에서 하트를 누르면 여기에 모여요.'));
+    (list.length ? `<div class="tile-grid">${list.map((x) => tile(x, S)).join('')}</div>`
+      : empty('아직 찜한 작품이 없어요', '추천 화면에서 하트를 누르면 여기에 모여요.'));
 }
 
 export function seenView({ S, lookup }) {

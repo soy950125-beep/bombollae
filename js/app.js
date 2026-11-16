@@ -155,14 +155,24 @@ function paintSheet() {
 
 function render() {
   applyTheme();
+  // 지금 어떤 화면인지 body에 적어 두면, css에서 화면별로 장식을 다르게 할 수 있다
+  document.body.dataset.view = S.screen === 'main' ? S.tab : S.screen;
   // 다시 그린 뒤에도 키보드 초점이 같은 버튼에 남도록 기억해 둔다
   const active = document.activeElement?.dataset?.act ? `${document.activeElement.dataset.act}|${document.activeElement.dataset.v || ''}` : '';
+
+  // 다시 그려도 가로 줄의 스크롤 위치가 처음으로 튀지 않도록 기억해 둔다
+  const shelfScroll = {};
+  document.querySelectorAll('.shelf-scroll[data-row]').forEach((el) => { shelfScroll[el.dataset.row] = el.scrollLeft; });
 
   const ctx = context();
   const view = $('#view');
   if (S.screen === 'survey') view.innerHTML = View.surveyView(ctx);
   else if (S.screen === 'watched') view.innerHTML = View.watchedView(ctx);
   else view.innerHTML = ({ rec: View.recView, wish: View.wishView, seen: View.seenView, theme: View.themeView }[S.tab] || View.recView)(ctx);
+
+  document.querySelectorAll('.shelf-scroll[data-row]').forEach((el) => {
+    if (shelfScroll[el.dataset.row]) el.scrollLeft = shelfScroll[el.dataset.row];
+  });
 
   const nav = $('#nav');
   nav.hidden = S.screen !== 'main';
