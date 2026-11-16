@@ -25,6 +25,8 @@ const ICON = {
   eye: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>',
   flower: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3"/><circle cx="7.5" cy="13" r="3"/><circle cx="16.5" cy="13" r="3"/><path d="M12 15v6"/></svg>',
   home: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9v11h5v-6h4v6h5V9"/></svg>',
+  starLine: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5l2.5 5.3 5.8.7-4.3 4 1.1 5.8L12 16.4l-5.1 2.9 1.1-5.8-4.3-4 5.8-.7z"/></svg>',
+  starFill: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3.5l2.5 5.3 5.8.7-4.3 4 1.1 5.8L12 16.4l-5.1 2.9 1.1-5.8-4.3-4 5.8-.7z"/></svg>',
   trophy: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a2.5 2.5 0 0 0 2.6 4M16 6h2.5a2.5 2.5 0 0 1-2.6 4"/><path d="M12 13v4M9 20h6M10 17h4"/></svg>',
   undo: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
   search: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
@@ -106,13 +108,22 @@ function kindChips(act, current) {
   ).join('')}</div>`;
 }
 
+/**
+ * 본 작품 칸: 포스터를 누르면 '봤어요' 켜기/끄기, 오른쪽 위 별을 누르면 '인생작' 켜기/끄기.
+ * (예전엔 한 번·두 번·세 번 누르는 방식이라 헷갈려서 버튼을 둘로 나눴다)
+ */
 function pick(it, S) {
   const st = S.status[it.key] || '';
-  const label = st === 'best' ? '인생작' : st === 'seen' ? '봤어요' : '';
-  const badge = st === 'best' ? `<span class="badge">${ICON.heartFill}</span>` : st === 'seen' ? `<span class="badge">${ICON.checkSm}</span>` : '';
-  return `<button type="button" class="pick" data-act="mark" data-v="${it.key}" data-state="${st}" aria-label="${esc(it.title)}, ${label || '안 봤어요'}">` +
-    poster(it, 'w185', badge) +
-    `<span class="pname">${esc(it.title)}</span><span class="pmeta">${KINDS[it.kind]}${it.year ? ' · ' + it.year : ''}${label ? ' · ' + label : ''}</span></button>`;
+  const seen = Boolean(st);
+  const best = st === 'best';
+  const label = best ? '인생작' : seen ? '봤어요' : '';
+  const check = seen ? `<span class="badge">${ICON.checkSm}</span>` : '';
+  return `<div class="pick-wrap" data-state="${st}">` +
+    `<button type="button" class="pick" data-act="mark" data-v="${it.key}" data-state="${st}" aria-pressed="${seen}" aria-label="${esc(it.title)}, ${seen ? '봤어요' : '안 봤어요'}">` +
+    poster(it, 'w185', check) +
+    `<span class="pname">${esc(it.title)}</span><span class="pmeta">${KINDS[it.kind]}${it.year ? ' · ' + it.year : ''}${label ? ' · ' + label : ''}</span></button>` +
+    `<button type="button" class="pick-star" data-act="best" data-v="${it.key}" aria-pressed="${best}" aria-label="${esc(it.title)} ${best ? '인생작 취소' : '인생작으로 표시'}">${best ? ICON.starFill : ICON.starLine}</button>` +
+    '</div>';
 }
 
 export function watchedGrid({ S, catalog, search }) {
@@ -133,8 +144,8 @@ export function watchedGrid({ S, catalog, search }) {
 export function watchedView(ctx) {
   const { S, search } = ctx;
   const c = counts(S);
-  return '<header class="page-head"><h1>본 작품 체크</h1><p>한 번 누르면 <b>봤어요</b>, 두 번 누르면 <b>인생작</b>, 세 번 누르면 취소돼요.</p></header>' +
-    `<div class="tools"><label class="search">${ICON.search}<input id="wsearch" type="search" placeholder="못 찾겠으면 제목으로 검색" aria-label="작품 제목 검색" autocomplete="off" value="${esc(search.q)}"></label>${kindChips('wkind', S.wfilter)}</div>` +
+  return '<header class="page-head"><h1>본 작품 체크</h1><p>본 작품을 눌러 주세요. 특히 재밌었던 작품은 <b>★</b>을 눌러 <b>인생작</b>으로!</p></header>' +
+    `<div class="tools"><label class="search">${ICON.search}<input id="wsearch" type="search" placeholder="보고 싶은 작품 찾기" aria-label="보고 싶은 작품 찾기" autocomplete="off" value="${esc(search.q)}"></label>${kindChips('wkind', S.wfilter)}</div>` +
     `<div class="pgrid" id="wgrid">${watchedGrid(ctx)}</div>` +
     `<div class="bar"><span><span class="count">${c.seen}</span>개 체크 · 인생작 ${c.best}개</span><button type="button" class="primary sm" data-act="done">추천 받기</button></div>`;
 }
@@ -339,7 +350,7 @@ export function findView(ctx) {
   const { count, html } = findResults(ctx);
   return '<div class="find-top">' +
     `<button type="button" class="icon-btn" data-act="findClose" aria-label="홈으로 돌아가기">${ICON.back}</button>` +
-    `<label class="search find-input">${ICON.search}<input id="fsearch" type="search" placeholder="작품 제목으로 찾기" aria-label="작품 제목으로 찾기" autocomplete="off" enterkeyhint="search" value="${esc(find.q)}">` +
+    `<label class="search find-input">${ICON.search}<input id="fsearch" type="search" placeholder="보고 싶은 작품 찾기" aria-label="보고 싶은 작품 찾기" autocomplete="off" enterkeyhint="search" value="${esc(find.q)}">` +
     `<button type="button" class="clear-btn" data-act="findClear" aria-label="검색어 지우기"${find.q ? '' : ' hidden'}>${ICON.x}</button></label></div>` +
     `<div class="chips" role="group" aria-label="종류">${kinds}</div>` +
     `<div class="chip-scroll" role="group" aria-label="장르">${genres}</div>` +

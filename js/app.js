@@ -310,12 +310,16 @@ const actions = {
     top();
   },
 
-  // 본 작품 체크: 안 봄 → 봤어요 → 인생작 → 안 봄
+  // 본 작품 체크: 포스터 = 봤어요 켜기/끄기, 별 = 인생작 켜기/끄기 (인생작은 당연히 본 작품)
   mark: (key) => {
-    const cur = S.status[key];
-    if (!cur) { S.status[key] = 'seen'; remember(lookup(key)); }
-    else if (cur === 'seen') S.status[key] = 'best';
-    else delete S.status[key];
+    if (S.status[key]) delete S.status[key];
+    else { S.status[key] = 'seen'; remember(lookup(key)); }
+  },
+  best: (key) => {
+    if (S.status[key] === 'best') { S.status[key] = 'seen'; return; }
+    S.status[key] = 'best';
+    remember(lookup(key));
+    toast('인생작으로 표시했어요. 비슷한 작품을 더 추천할게요');
   },
   wkind: (v) => { S.wfilter = v; },
   done: () => { S.screen = 'main'; S.tab = 'rec'; search.q = ''; top(); loadCatalog(); },
