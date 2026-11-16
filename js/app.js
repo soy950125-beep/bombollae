@@ -295,7 +295,7 @@ function startSplash() {
     if (closed) return;
     closed = true;
     splash.classList.add('splash-out');
-    setTimeout(() => splash.remove(), 500);
+    setTimeout(() => splash.remove(), 700);
     document.removeEventListener('keydown', close);
   };
   splash.addEventListener('click', close);      // 누르면 바로 넘어가기
@@ -305,7 +305,7 @@ function startSplash() {
   const fontsReady = document.fonts?.ready || Promise.resolve();
   Promise.race([fontsReady, new Promise((r) => setTimeout(r, 600))]).then(() => {
     splash.classList.add('play');
-    setTimeout(close, reduced ? 900 : 2300);
+    setTimeout(close, reduced ? 1500 : 3600);
   });
 }
 
