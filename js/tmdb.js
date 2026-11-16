@@ -73,6 +73,7 @@ export function normalize(raw, typeHint) {
     dis,
     poster: raw.poster_path || '',
     backdrop: raw.backdrop_path || '',
+    date: raw.first_air_date || raw.release_date || '',
     year: (raw.first_air_date || raw.release_date || '').slice(0, 4),
     overview: raw.overview || '',
     vote: raw.vote_average || 0,

@@ -7,7 +7,7 @@
 //   + 1점    TMDB 평점 8점 이상 (그 아래는 6점 기준으로 조금씩 가감)
 //   - 4점    피하고 싶다고 고른 요소가 있을 때
 
-import { REASON, WARN, ROW_TITLE } from './config.js';
+import { REASON, WARN, ROW_TITLE, GENRE_GROUPS } from './config.js';
 
 export function analyze(item, state, lookup) {
   let score = 0;
@@ -114,4 +114,29 @@ export function buildShelves(ranked, state, lookup) {
   addRow('popular', '지금 많이 보는 작품', () => true, { sort: (x, y) => y.item.pop - x.item.pop, min: 1 });
 
   return { hero, rows };
+}
+
+/**
+ * 찾기 화면: 종류·장르·안 본 것만 조건으로 거르고, 고른 기준으로 정렬한다.
+ * find = { kind, genre, unseenOnly, sort }
+ */
+export function filterAndSort(items, find, state, lookup) {
+  const group = GENRE_GROUPS.find((g) => g.id === find.genre);
+  const list = items.filter((it) => {
+    if (find.kind !== 'all' && it.kind !== find.kind) return false;
+    if (group && !it.g.some((id) => group.ids.includes(id))) return false;
+    if (find.unseenOnly && (state.status[it.key] || state.nope.includes(it.key))) return false;
+    return true;
+  });
+  const dateOf = (it) => it.date || it.year || '';
+  // 추천순은 점수를 한 번씩만 계산해 두고 비교한다
+  const score = new Map();
+  if ((find.sort || 'rec') === 'rec') list.forEach((it) => score.set(it.key, analyze(it, state, lookup).score));
+  const sorters = {
+    rec: (x, y) => score.get(y.key) - score.get(x.key) || y.pop - x.pop,
+    new: (x, y) => dateOf(y).localeCompare(dateOf(x)),
+    rating: (x, y) => y.vote - x.vote || y.pop - x.pop,
+    popular: (x, y) => y.pop - x.pop
+  };
+  return list.sort(sorters[find.sort] || sorters.rec);
 }

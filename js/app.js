@@ -43,6 +43,9 @@ const details = {};
 let wipeArmed = false;
 let themeOpen = false; // 오른쪽 위 테마 버튼의 꽃 목록이 열려 있는지
 
+// 찾기 화면 (검색어·종류·장르·정렬). 검색어가 있으면 TMDB 전체에서, 없으면 불러온 목록에서 찾는다
+const find = { open: false, q: '', kind: 'all', genre: 'all', sort: 'rec', unseenOnly: true, items: [], loading: false, error: '', seq: 0, timer: null };
+
 // 오늘의 한 편 월드컵 (새로고침하면 처음부터)
 //   round: 이번 라운드 작품키들, next: 이긴 작품키들, idx: 몇 번째 대결인지, history: 되돌리기용
 const cup = { stage: 'setup', source: 'rec', size: 8, round: [], next: [], idx: 0, done: 0, total: 0, winner: null, history: [] };
@@ -53,6 +56,7 @@ const save = () => writeJSON(STATE_KEY, S);
 function lookup(key) {
   return catalog.items.find((it) => it.key === key)
     || search.items.find((it) => it.key === key)
+    || find.items.find((it) => it.key === key)
     || S.meta[key]
     || null;
 }
@@ -100,6 +104,26 @@ async function runSearch(q) {
   paintGrid();
 }
 
+/** 찾기 화면 검색: 결과 부분만 다시 그려서 입력 중인 검색창이 흔들리지 않게 한다 */
+async function runFind(q) {
+  const seq = ++find.seq;
+  find.q = q;
+  find.error = '';
+  if (!q) { find.items = []; find.loading = false; paintFind(); return; }
+  find.loading = true;
+  paintFind();
+  try {
+    const items = await searchTitles(q);
+    if (seq !== find.seq) return;
+    find.items = items;
+  } catch (err) {
+    if (seq !== find.seq) return;
+    find.error = errorMessage(err);
+  }
+  find.loading = false;
+  paintFind();
+}
+
 async function loadDetail(item) {
   if (details[item.key] && !details[item.key].error) return;
   details[item.key] = { loading: true };
@@ -120,7 +144,7 @@ async function loadDetail(item) {
 
 const $ = (sel) => document.querySelector(sel);
 const context = () => ({
-  S, catalog, search, details, lookup, wipeArmed, cup,
+  S, catalog, search, details, lookup, wipeArmed, cup, find,
   cupCounts: S.tab === 'cup' && cup.stage === 'setup' ? { rec: cupPool('rec').length, wish: cupPool('wish').length } : {}
 });
 
@@ -171,6 +195,16 @@ function paintGrid() {
   if (grid) grid.innerHTML = View.watchedGrid(context());
 }
 
+function paintFind() {
+  const grid = $('#fresults');
+  if (!grid) return;
+  const { count, html } = View.findResults(context());
+  grid.innerHTML = html;
+  $('#fcount').innerHTML = count;
+  const clear = document.querySelector('[data-act="findClear"]');
+  if (clear) clear.hidden = !find.q;
+}
+
 function paintSheet() {
   const sheet = $('#sheet');
   if (S.detail && S.screen === 'main') {
@@ -194,7 +228,8 @@ function paintSheet() {
 function render() {
   applyTheme();
   // 지금 어떤 화면인지 body에 적어 두면, css에서 화면별로 장식을 다르게 할 수 있다
-  document.body.dataset.view = S.screen === 'main' ? S.tab : S.screen;
+  const inFind = S.screen === 'main' && find.open;
+  document.body.dataset.view = inFind ? 'find' : S.screen === 'main' ? S.tab : S.screen;
   // 다시 그린 뒤에도 키보드 초점이 같은 버튼에 남도록 기억해 둔다
   const active = document.activeElement?.dataset?.act ? `${document.activeElement.dataset.act}|${document.activeElement.dataset.v || ''}` : '';
 
@@ -206,6 +241,7 @@ function render() {
   const view = $('#view');
   if (S.screen === 'survey') view.innerHTML = View.surveyView(ctx);
   else if (S.screen === 'watched') view.innerHTML = View.watchedView(ctx);
+  else if (inFind) view.innerHTML = View.findView(ctx);
   else view.innerHTML = ({ rec: View.recView, cup: View.cupView, wish: View.wishView, seen: View.seenView }[S.tab] || View.recView)(ctx);
 
   document.querySelectorAll('.shelf-scroll[data-row]').forEach((el) => {
@@ -274,7 +310,22 @@ const actions = {
   more: () => { S.screen = 'watched'; top(); },
 
   // 메인 탭
-  tab: (v) => { S.tab = v; top(); if (v === 'cup') loadCatalog(); },
+  tab: (v) => { S.tab = v; find.open = false; top(); if (v === 'cup') loadCatalog(); },
+
+  // 찾기
+  findOpen: () => {
+    find.open = true;
+    top();
+    setTimeout(() => $('#fsearch')?.focus(), 0); // 열자마자 바로 칠 수 있게
+  },
+  findClose: () => { find.open = false; top(); },
+  findClear: () => {
+    clearTimeout(find.timer);
+    find.q = ''; find.items = []; find.loading = false; find.seq++;
+    setTimeout(() => $('#fsearch')?.focus(), 0);
+  },
+  findKind: (v) => { find.kind = v; },
+  findGenre: (v) => { find.genre = v; },
   filter: (v) => { S.filter = v; },
   open: (key) => { S.detail = key; const it = lookup(key); if (it) loadDetail(it); },
   close: () => {
@@ -379,13 +430,31 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('input', (e) => {
+  if (e.target.id === 'fsearch') {
+    const q = e.target.value.trim();
+    clearTimeout(find.timer);
+    find.timer = setTimeout(() => runFind(q), 350);
+    return;
+  }
   if (e.target.id !== 'wsearch') return;
   const q = e.target.value.trim();
   clearTimeout(search.timer);
   search.timer = setTimeout(() => runSearch(q), 350); // 다 칠 때까지 잠깐 기다렸다가 검색
 });
 
+// 찾기 화면의 정렬·안 본 것만
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'fsort') { find.sort = e.target.value; paintFind(); }
+  if (e.target.id === 'funseen') { find.unseenOnly = e.target.checked; paintFind(); }
+});
+
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'fsearch') { // 엔터를 누르면 기다리지 않고 바로 검색
+    clearTimeout(find.timer);
+    runFind(e.target.value.trim());
+    e.target.blur();
+    return;
+  }
   if (e.key !== 'Escape') return;
   if (themeOpen) { themeOpen = false; render(); $('#themeFab').focus(); return; }
   if (S.detail) { actions.close(); save(); render(); }

@@ -58,6 +58,28 @@ export const GENRE_NAME = {
   14: '판타지', 36: '역사', 27: '공포', 10402: '음악', 9648: '미스터리', 10749: '로맨스', 878: 'SF', 53: '스릴러',
   10752: '전쟁', 37: '서부', 10759: '액션·모험', 10765: 'SF·판타지', 10766: '연속극', 10768: '전쟁·정치'
 };
+// 찾기 화면의 장르 버튼: TMDB 장르 번호를 사람이 알기 쉬운 묶음으로 (드라마용·영화용 번호가 달라서 함께 묶음)
+export const GENRE_GROUPS = [
+  { id: 'romance', name: '로맨스', ids: [10749] },
+  { id: 'comedy', name: '코미디', ids: [35] },
+  { id: 'thriller', name: '스릴러·미스터리', ids: [53, 9648] },
+  { id: 'action', name: '액션', ids: [28, 10759, 12] },
+  { id: 'fantasy', name: '판타지·SF', ids: [14, 878, 10765] },
+  { id: 'crime', name: '범죄', ids: [80] },
+  { id: 'drama', name: '드라마', ids: [18] },
+  { id: 'horror', name: '공포', ids: [27] },
+  { id: 'family', name: '가족', ids: [10751] },
+  { id: 'docu', name: '다큐', ids: [99] }
+];
+
+// 찾기 화면의 정렬
+export const SORTS = [
+  { id: 'rec', name: '추천순' },
+  { id: 'new', name: '최신순' },
+  { id: 'rating', name: '평점순' },
+  { id: 'popular', name: '인기순' }
+];
+
 // 뉴스·예능·토크쇼·키즈는 추천 대상에서 뺀다
 export const EXCLUDE_GENRES = [10763, 10764, 10767, 10762];
 
