@@ -148,7 +148,7 @@ function card({ item, a }, S) {
 }
 
 export function recView({ S, catalog, lookup }) {
-  const head = `<header class="page-head"><span class="eyebrow">인기작 ${catalog.items.length}개 중 안 본 것만</span><h1>오늘의 추천</h1></header>`;
+  const head = `<header class="page-head"><h1>오늘의 추천</h1></header>`;
   if (catalog.loading && !catalog.items.length) return head + loading('작품을 불러오는 중이에요');
   if (catalog.error && !catalog.items.length) {
     return head + empty('작품을 불러오지 못했어요', esc(catalog.error), '<br><br><button type="button" class="ghost sm" data-act="reload">다시 불러오기</button>');
