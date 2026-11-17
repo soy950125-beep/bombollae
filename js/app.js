@@ -179,12 +179,25 @@ window.addEventListener('message', (e) => {
   let data;
   try { data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
   if (data.event === 'onReady' && !det.userMuted) {
+    det.unmuteAt = Date.now();
     ytSend({ event: 'command', func: 'unMute', args: [] });
     ytSend({ event: 'command', func: 'playVideo', args: [] });
   }
+  const info = data.info || {};
+  // 영상이 끝나면(0) 유튜브 추천 화면이 뜨기 전에 바로 포스터 이미지로 돌아간다
+  if (info.playerState === 0) { stopPreview(S.detail, true); return; }
+  // 소리를 켜자마자 멈췄다면(2) 브라우저가 소리 자동 재생을 막은 것 → 소리 없이 다시 재생
+  if (info.playerState === 2 && det.unmuteAt && Date.now() - det.unmuteAt < 4000) {
+    det.unmuteAt = 0;
+    det.muted = true;
+    ytSend({ event: 'command', func: 'mute', args: [] });
+    ytSend({ event: 'command', func: 'playVideo', args: [] });
+    paintMute(true);
+    return;
+  }
   // 아이폰처럼 소리를 막는 기기에선 계속 '음소거' 상태로 알려 주므로, 버튼이 실제 상태를 따라가게 한다
-  if (data.info && typeof data.info.muted === 'boolean' && data.info.muted !== det.muted) {
-    det.muted = data.info.muted;
+  if (typeof info.muted === 'boolean' && info.muted !== det.muted) {
+    det.muted = info.muted;
     paintMute(det.muted);
   }
 });
@@ -192,9 +205,9 @@ let previewTimer = null;
 const canAutoplay = () =>
   !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !(navigator.connection && navigator.connection.saveData);
 
-function startPreview(key) {
+function startPreview(key, byUser = false) {
   const det = details[key];
-  if (!det?.trailer || det.playing || det.previewDone || !canAutoplay()) return;
+  if (!det?.trailer || det.previewDone || (!byUser && !canAutoplay())) return;
   det.preview = true;
   det.muted = true;      // 소리 켜기에 성공하면 유튜브가 알려 줘서 바뀐다
   det.userMuted = false;
@@ -465,9 +478,16 @@ const actions = {
     det.muted = !det.muted;
     det.userMuted = det.muted;
     ytSend({ event: 'command', func: det.muted ? 'mute' : 'unMute', args: [] });
-    if (!det.muted) ytSend({ event: 'command', func: 'playVideo', args: [] });
+    if (!det.muted) { det.unmuteAt = Date.now(); ytSend({ event: 'command', func: 'playVideo', args: [] }); }
     paintMute(det.muted);
     return NO_RENDER;
+  },
+  // 미리보기가 끝난 뒤 '예고편 다시 보기'
+  replayTrailer: (key) => {
+    const det = details[key];
+    if (!det) return;
+    det.previewDone = false;
+    startPreview(key, true);
   },
   playTrailer: (key) => {
     stopPreview(key, false);  // 위쪽 미리보기는 멈추고 아래에서 소리 켜고 재생

@@ -423,19 +423,6 @@ export function wishLabel(wished) {
   return `${wished ? ICON.heartSolid : ICON.heart}${wished ? '찜했어요' : '찜하기'}`;
 }
 
-/** 예고편: 처음엔 썸네일만 보여 주고, 누르면 그 자리에서 유튜브 영상이 재생된다 */
-function trailerBox(it, det) {
-  const t = det.trailer;
-  if (!t) return '';
-  const label = t.lang === 'en' ? '예고편 (영어)' : '예고편';
-  const body = det.playing
-    ? `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.key)}?autoplay=1&playsinline=1&rel=0" title="${esc(it.title)} 예고편" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`
-    : `<button type="button" class="trailer-thumb" data-act="playTrailer" data-v="${it.key}" aria-label="${esc(it.title)} 예고편 재생">` +
-      `<img src="https://i.ytimg.com/vi/${encodeURIComponent(t.key)}/hqdefault.jpg" alt="" loading="lazy" onerror="this.remove()">` +
-      `<span class="trailer-play">${ICON.play}</span></button>`;
-  return `<div class="box trailer"><h2>${label}</h2><div class="trailer-frame">${body}</div></div>`;
-}
-
 export function sheetView({ S, details, lookup }) {
   const it = lookup(S.detail);
   if (!it) return '';
@@ -476,14 +463,15 @@ export function sheetView({ S, details, lookup }) {
   const preview = det.preview && det.trailer
     ? `<div class="hero-video" aria-hidden="true"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(det.trailer.key)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}" tabindex="-1" title="${esc(it.title)} 예고편 미리보기" allow="autoplay; encrypted-media"></iframe></div>` +
       `<button type="button" class="hero-mute" data-act="toggleMute" data-v="${it.key}" aria-pressed="${det.muted !== false}" aria-label="${det.muted !== false ? '소리 켜기' : '소리 끄기'}">${muteIcon(det.muted !== false)}</button>`
-    : '';
+    : det.trailer
+      ? `<button type="button" class="hero-replay" data-act="replayTrailer" data-v="${it.key}">${ICON.play}${det.previewDone ? '예고편 다시 보기' : '예고편 보기'}</button>`
+      : '';
 
   return '<div class="panel" role="dialog" aria-modal="true" aria-labelledby="dtitle">' +
     `<div ${hero}>${preview}<button type="button" class="close" data-act="close" aria-label="닫기">${ICON.x}</button>` +
     `<div><span class="meta">${meta}</span><div class="title" id="dtitle">${esc(it.title)}</div></div></div>` +
     (genreLine(it) ? `<span class="meta">${genreLine(it)}</span>` : '') +
     (it.overview ? `<p class="desc">${esc(it.overview)}</p>` : '<p class="desc" style="color:var(--muted)">한국어 줄거리가 아직 등록되지 않았어요.</p>') +
-    trailerBox(it, det) +
     `<div class="box"><h2>왜 재밌을까요?</h2><ul>${a.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` +
     warns +
     `<div class="box"><h2>어디서 볼 수 있어요?</h2>${where}</div>` +

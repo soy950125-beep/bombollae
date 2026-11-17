@@ -324,12 +324,17 @@ body[data-view="find"] .deco-br { display: none; }
 .panel-hero { flex-shrink: 0; }
 .panel-hero.previewing { aspect-ratio: 16 / 9; min-height: 200px; }
 .panel-hero > .hero-video { position: absolute; inset: 0; overflow: hidden; pointer-events: none; animation: hero-video-in .8s ease 1.2s both; }
-.hero-video iframe { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; transform: translate(-50%, -50%) scale(1.02); border: 0; }
+.hero-video iframe { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 0;
+  transform: translate(-50%, -50%) scale(1.3); } /* 살짝 확대해서 가장자리에 뜨는 유튜브 제목·로고를 잘라낸다 */
 .panel-hero.previewing::before { z-index: 1; }
 .panel-hero.previewing > *:not(.hero-video) { z-index: 2; }
 .hero-mute { position: absolute !important; right: 14px; bottom: 16px; width: 42px; height: 42px; border-radius: 21px;
   border: 1.5px solid rgba(255, 255, 255, .75); background: rgba(30, 18, 24, .45); color: #FFFFFF; display: flex; align-items: center; justify-content: center; }
 .panel-hero.previewing > .hero-mute { z-index: 3; }
+.hero-replay { position: absolute !important; left: 14px; top: 22px; z-index: 3; height: 40px; padding: 0 16px 0 10px; border-radius: 20px; border: none;
+  background: rgba(255, 255, 255, .92); color: #3D2B33; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .2); }
+.hero-replay svg { width: 18px; height: 18px; color: var(--deep); }
 .hero-mute[aria-pressed="true"] { background: rgba(255, 255, 255, .92); color: #3D2B33; border-color: transparent; }
 .panel-hero.previewing .title, .panel-hero.previewing .meta { padding-right: 52px; display: block; }
 @keyframes hero-video-in { from { opacity: 0; } to { opacity: 1; } }

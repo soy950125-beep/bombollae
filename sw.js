@@ -1,6 +1,6 @@
 // 서비스 워커: 앱으로 설치할 수 있게 해 주고, 인터넷이 끊겨도 마지막으로 본 화면은 열리게 한다.
 // 항상 인터넷에서 먼저 받아오고(새 버전이 바로 보이도록), 실패했을 때만 저장해 둔 것을 쓴다.
-const CACHE = 'bombollae-v4';
+const CACHE = 'bombollae-v5';
 const SHELL = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/views.js', '/js/recommend.js', '/js/tmdb.js',
   '/js/config.js', '/js/flowers.js', '/js/storage.js', '/favicon.svg', '/icons/icon-192.png'];
 
