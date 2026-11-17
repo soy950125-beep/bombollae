@@ -79,6 +79,13 @@ export function buildShelves(ranked, state, lookup) {
   const used = new Set([hero.item.key]);
   const rows = [];
 
+  // 다들 봤는데 나만 안 본 TOP 10: 지금 인기 순위에서 내가 본 작품을 뺀 순위 (그래서 사람마다 다르다)
+  const top10 = ranked
+    .filter((x) => x.item.key !== hero.item.key)
+    .sort((x, y) => y.item.pop - x.item.pop)
+    .slice(0, 10);
+  top10.forEach((x) => used.add(x.item.key));
+
   const addRow = (id, title, test, { sort, limit = 12, min = 3 } = {}) => {
     let pool = ranked.filter((x) => !used.has(x.item.key) && test(x.item));
     if (sort) pool = [...pool].sort(sort);
@@ -114,7 +121,7 @@ export function buildShelves(ranked, state, lookup) {
   addRow('top', '평이 아주 좋은 작품', (it) => it.vote >= 7.8, { sort: (x, y) => y.item.vote - x.item.vote });
   addRow('popular', '지금 많이 보는 작품', () => true, { sort: (x, y) => y.item.pop - x.item.pop, min: 1 });
 
-  return { hero, rows };
+  return { hero, top10: top10.length >= 5 ? top10 : [], rows };
 }
 
 /**

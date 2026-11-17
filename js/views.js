@@ -172,6 +172,13 @@ function tile({ item }, S, justWished) {
     '</div>';
 }
 
+/** TOP 10 한 칸: 큰 순위 숫자 + 포스터 + 제목 */
+function rankTile({ item }, rank) {
+  return `<button type="button" class="rank-tile" data-act="open" data-v="${item.key}" aria-label="${rank}위 ${esc(item.title)} 자세히 보기">` +
+    `<span class="rank-num${rank === 10 ? ' ten' : ''}" aria-hidden="true">${rank}</span>` +
+    `<span class="rank-body">${poster(item, 'w342')}<span class="rank-title">${esc(item.title)}</span></span></button>`;
+}
+
 /** 맨 위 큰 카드: 오늘의 1순위 */
 function heroCard({ item, a }, S, justWished) {
   const wished = S.wish.includes(item.key);
@@ -202,7 +209,15 @@ export function recView({ S, catalog, lookup, justWished, more }) {
       empty('지금 추천할 작품을 다 봤어요!', '다른 종류도 둘러보거나, 찾기에서 장르로 골라 보세요.',
         '<br><br><button type="button" class="ghost sm" data-act="filter" data-v="all">전체 작품 보기</button> <button type="button" class="ghost sm" data-act="findOpen">찾기로 둘러보기</button>');
   }
-  const { hero, rows } = buildShelves(ranked, S, lookup);
+  const { hero, top10, rows } = buildShelves(ranked, S, lookup);
+  const rank = top10.length
+    ? '<section class="shelf rank-shelf" aria-label="다들 봤는데 나만 안 본 TOP 10">' +
+      '<h2 class="shelf-title">다들 봤는데 나만 안 본 TOP 10</h2>' +
+      '<p class="shelf-sub">지금 인기 순위에서 내가 본 작품을 뺀, 나만의 순위예요</p>' +
+      `<button type="button" class="shelf-arrow prev" data-act="shelfMove" data-v="top10|-1" aria-label="TOP 10 이전 작품 보기">${ICON.back}</button>` +
+      `<button type="button" class="shelf-arrow next" data-act="shelfMove" data-v="top10|1" aria-label="TOP 10 다음 작품 보기">${ICON.back}</button>` +
+      `<ol class="shelf-scroll rank-list" data-row="top10">${top10.map((x, i) => `<li>${rankTile(x, i + 1)}</li>`).join('')}</ol></section>`
+    : '';
   const shelves = rows.map((row) =>
     `<section class="shelf" aria-label="${esc(row.title)}">` +
     `<h2 class="shelf-title">${esc(row.title)}</h2>` +
@@ -211,7 +226,7 @@ export function recView({ S, catalog, lookup, justWished, more }) {
     `<button type="button" class="shelf-arrow next" data-act="shelfMove" data-v="${esc(row.id)}|1" aria-label="${esc(row.title)} 다음 작품 보기">${ICON.back}</button>` +
     `<div class="shelf-scroll" data-row="${esc(row.id)}">${row.items.map((x) => tile(x, S, justWished)).join('')}</div></section>`
   ).join('');
-  return head + kindChips('filter', S.filter) + heroCard(hero, S, justWished) + shelves;
+  return head + kindChips('filter', S.filter) + heroCard(hero, S, justWished) + rank + shelves;
 }
 
 export function wishView({ S, lookup, justWished }) {
