@@ -320,6 +320,19 @@ body[data-view="find"] .deco-br { display: none; }
 .panel-hero { position: relative; margin: 0 calc(-1 * max(18px, env(safe-area-inset-left, 0px))); padding: 18px max(18px, env(safe-area-inset-left, 0px)) 22px; border-radius: 28px 28px 24px 24px; display: flex; flex-direction: column; gap: 6px; min-height: 200px; justify-content: space-between; overflow: hidden; background-size: cover; background-position: center; }
 .panel-hero.has-img::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(30, 18, 24, .78), rgba(30, 18, 24, .05) 70%); }
 .panel-hero > * { position: relative; }
+/* 예고편 미리보기: 배경 이미지 위에 영상을 깔고, 1초 뒤 서서히 나타나게 (검은 로딩 화면이 안 보이도록) */
+.panel-hero { flex-shrink: 0; }
+.panel-hero.previewing { aspect-ratio: 16 / 9; min-height: 200px; }
+.panel-hero > .hero-video { position: absolute; inset: 0; overflow: hidden; pointer-events: none; animation: hero-video-in .8s ease 1.2s both; }
+.hero-video iframe { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; transform: translate(-50%, -50%) scale(1.02); border: 0; }
+.panel-hero.previewing::before { z-index: 1; }
+.panel-hero.previewing > *:not(.hero-video) { z-index: 2; }
+.hero-sound { position: absolute !important; left: 14px; top: 22px; height: 36px; padding: 0 14px 0 10px; border-radius: 18px; border: none;
+  background: rgba(255, 255, 255, .9); color: #3D2B33; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.hero-sound svg { width: 18px; height: 18px; }
+@keyframes hero-video-in { from { opacity: 0; } to { opacity: 1; } }
+.where-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.where-actions .mini { text-decoration: none; color: var(--ink); }
 .panel-hero .title { font-size: 28px; color: var(--poster-ink); }
 .panel-hero .meta { color: var(--poster-ink); }
 .panel-hero.has-img .title, .panel-hero.has-img .meta { color: #FFFFFF; }

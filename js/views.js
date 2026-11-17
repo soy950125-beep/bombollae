@@ -452,15 +452,24 @@ export function sheetView({ S, details, lookup }) {
     const p = det.providers;
     where = p && (p.flatrate || p.rent || p.buy)
       ? providerRow('구독해서 보기', p.flatrate) + providerRow('대여', p.rent) + providerRow('구매', p.buy) + '<p class="fine">정보 제공: JustWatch · 실제 서비스 상황과 다를 수 있어요</p>'
-      : '<p class="desc" style="color:var(--muted)">지금 한국에서 볼 수 있는 정식 서비스 정보가 없어요.</p>';
+      : '<p class="desc">아직 한국 OTT 정보가 등록되지 않은 작품이에요. 아래 버튼으로 바로 찾아볼 수 있어요.</p>' +
+        '<div class="where-actions">' +
+        `<a class="mini" href="https://www.google.com/search?q=${encodeURIComponent(`${it.title} 다시보기`)}" target="_blank" rel="noopener">${ICON.search}볼 수 있는 곳 검색</a>` +
+        `<a class="mini" href="https://www.youtube.com/results?search_query=${encodeURIComponent(`${it.title} 예고편`)}" target="_blank" rel="noopener">${ICON.play}유튜브에서 보기</a></div>` +
+        '<p class="fine">홈 추천에는 한국에서 정식으로 볼 수 있는 작품만 나와요.</p>';
   }
 
   const hero = it.backdrop
-    ? `class="panel-hero has-img" style="background-image:url(${IMG_BASE}w780${it.backdrop})"`
-    : `class="panel-hero" style="background:${colorFor(it.key)}"`;
+    ? `class="panel-hero has-img${det.preview ? ' previewing' : ''}" style="background-image:url(${IMG_BASE}w780${it.backdrop})"`
+    : `class="panel-hero${det.preview ? ' has-img previewing' : ''}" style="background:${colorFor(it.key)}"`;
+  // 넷플릭스처럼 열자마자 소리 없이 예고편 재생 (30초 뒤 app.js가 끄고 원래 이미지로)
+  const preview = det.preview && det.trailer
+    ? `<div class="hero-video" aria-hidden="true"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(det.trailer.key)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1" tabindex="-1" title="${esc(it.title)} 예고편 미리보기" allow="autoplay; encrypted-media"></iframe></div>` +
+      `<button type="button" class="hero-sound" data-act="playTrailer" data-v="${it.key}">${ICON.play}소리 켜고 보기</button>`
+    : '';
 
   return '<div class="panel" role="dialog" aria-modal="true" aria-labelledby="dtitle">' +
-    `<div ${hero}><button type="button" class="close" data-act="close" aria-label="닫기">${ICON.x}</button>` +
+    `<div ${hero}>${preview}<button type="button" class="close" data-act="close" aria-label="닫기">${ICON.x}</button>` +
     `<div><span class="meta">${meta}</span><div class="title" id="dtitle">${esc(it.title)}</div></div></div>` +
     (genreLine(it) ? `<span class="meta">${genreLine(it)}</span>` : '') +
     (it.overview ? `<p class="desc">${esc(it.overview)}</p>` : '<p class="desc" style="color:var(--muted)">한국어 줄거리가 아직 등록되지 않았어요.</p>') +

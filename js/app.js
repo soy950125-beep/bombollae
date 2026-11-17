@@ -9,7 +9,7 @@ import { rankCandidates } from './recommend.js';
 import * as View from './views.js';
 
 const STATE_KEY = 'bombollae-state-v1';
-const CATALOG_KEY = 'bombollae-catalog-v1';
+const CATALOG_KEY = 'bombollae-catalog-v2'; // v2: 한국에서 볼 수 있는 작품만
 const CATALOG_TTL = 12 * 60 * 60 * 1000; // 작품 목록은 12시간마다 새로 받는다
 
 /* ---------- 상태 ---------- */
@@ -128,8 +128,31 @@ async function runFind(q) {
   paintFind();
 }
 
+/* 예고편 미리보기: 상세 화면을 열면 위쪽 큰 이미지 자리에서 소리 없이 30초 재생하고 원래 이미지로 돌아간다 */
+const PREVIEW_MS = 30000;
+let previewTimer = null;
+const canAutoplay = () =>
+  !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !(navigator.connection && navigator.connection.saveData);
+
+function startPreview(key) {
+  const det = details[key];
+  if (!det?.trailer || det.playing || det.previewDone || !canAutoplay()) return;
+  det.preview = true;
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => stopPreview(key, true), PREVIEW_MS);
+}
+
+function stopPreview(key, repaint) {
+  clearTimeout(previewTimer);
+  const det = details[key];
+  if (!det?.preview) return;
+  det.preview = false;
+  det.previewDone = true; // 한 번 본 미리보기는 같은 창에서 다시 돌리지 않는다
+  if (repaint && S.detail === key) paintSheet();
+}
+
 async function loadDetail(item) {
-  if (details[item.key] && !details[item.key].error) return;
+  if (details[item.key] && !details[item.key].error) { startPreview(item.key); return; }
   details[item.key] = { loading: true };
   try {
     const { data, providers, trailer } = await fetchDetail(item);
@@ -141,7 +164,7 @@ async function loadDetail(item) {
   } catch (err) {
     details[item.key] = { error: errorMessage(err) };
   }
-  if (S.detail === item.key) paintSheet();
+  if (S.detail === item.key) { startPreview(item.key); paintSheet(); }
 }
 
 /* ---------- 화면 그리기 ---------- */
@@ -355,7 +378,8 @@ const actions = {
   close: () => {
     const key = S.detail;
     S.detail = null;
-    if (details[key]) details[key].playing = false; // 창을 닫으면 예고편도 멈춤
+    stopPreview(key, false);
+    if (details[key]) { details[key].playing = false; details[key].previewDone = false; } // 창을 닫으면 예고편도 멈춤
     setTimeout(() => document.querySelector(`[data-act="open"][data-v="${CSS.escape(key)}"]`)?.focus({ preventScroll: true }), 0);
   },
   wish: (key) => {
@@ -364,7 +388,7 @@ const actions = {
     if (adding) { remember(lookup(key)); justWished = key; }
     toast(adding ? '찜 목록에 담았어요' : '찜 목록에서 뺐어요');
     // 예고편을 보는 중이면 화면을 다시 그리지 않고 찜 버튼만 바꾼다 (다시 그리면 영상이 처음부터 다시 나와서)
-    if (S.detail === key && details[key]?.playing) {
+    if (S.detail === key && (details[key]?.playing || details[key]?.preview)) {
       const btn = document.querySelector('.panel .wish-btn');
       if (btn) { btn.setAttribute('aria-pressed', String(adding)); btn.innerHTML = View.wishLabel(adding); }
       save();
@@ -372,7 +396,11 @@ const actions = {
       return NO_RENDER;
     }
   },
-  playTrailer: (key) => { if (details[key]) details[key].playing = true; },
+  playTrailer: (key) => {
+    stopPreview(key, false);  // 위쪽 미리보기는 멈추고 아래에서 소리 켜고 재생
+    if (details[key]) details[key].playing = true;
+    setTimeout(() => document.querySelector('.trailer')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  },
   seen: (key) => {
     const it = lookup(key);
     S.status[key] = 'seen';

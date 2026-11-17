@@ -81,23 +81,26 @@ export function normalize(raw, typeHint) {
   };
 }
 
-// 처음 불러올 작품 목록: 이번 주 인기작 + 한국 OTT에서 볼 수 있는 작품 + 일본 애니 + 평점 높은 작품
-const OTT_KR = { watch_region: 'KR', with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc' };
+// 처음 불러올 작품 목록. 전부 '한국에서 정식으로 볼 수 있는 작품'(구독·무료 서비스)만 받아서,
+// 추천한 작품을 눌렀는데 볼 곳이 없는 일이 없도록 한다.
+const KR = { watch_region: 'KR', with_watch_monetization_types: 'flatrate|free|ads' };
+const POPULAR = { ...KR, sort_by: 'popularity.desc' };
+const TOP = { ...KR, sort_by: 'vote_average.desc', 'vote_count.gte': 400 };
 const CATALOG_REQUESTS = [
-  ['/trending/all/week', { page: 1 }, null],
-  ['/trending/all/week', { page: 2 }, null],
-  ['/discover/tv', { ...OTT_KR, with_original_language: 'ko', page: 1 }, 'tv'],
-  ['/discover/tv', { ...OTT_KR, with_original_language: 'ko', page: 2 }, 'tv'],
-  ['/discover/tv', { ...OTT_KR, with_original_language: 'ko', page: 3 }, 'tv'],
-  ['/discover/tv', { ...OTT_KR, page: 1 }, 'tv'],
-  ['/discover/tv', { with_genres: '16', with_original_language: 'ja', sort_by: 'popularity.desc', page: 1 }, 'tv'],
-  ['/discover/tv', { with_genres: '16', with_original_language: 'ja', sort_by: 'popularity.desc', page: 2 }, 'tv'],
-  ['/discover/movie', { ...OTT_KR, region: 'KR', page: 1 }, 'movie'],
-  ['/discover/movie', { ...OTT_KR, region: 'KR', page: 2 }, 'movie'],
-  ['/discover/movie', { ...OTT_KR, with_original_language: 'ko', page: 1 }, 'movie'],
-  ['/discover/movie', { with_genres: '16', sort_by: 'popularity.desc', 'vote_count.gte': 300, page: 1 }, 'movie'],
-  ['/tv/top_rated', { page: 1 }, 'tv'],
-  ['/movie/top_rated', { page: 1 }, 'movie']
+  ['/discover/tv', { ...POPULAR, page: 1 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, page: 2 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', page: 1 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', page: 2 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', page: 3 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_genres: '16', with_original_language: 'ja', page: 1 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_genres: '16', with_original_language: 'ja', page: 2 }, 'tv'],
+  ['/discover/tv', { ...TOP, page: 1 }, 'tv'],
+  ['/discover/movie', { ...POPULAR, page: 1 }, 'movie'],
+  ['/discover/movie', { ...POPULAR, page: 2 }, 'movie'],
+  ['/discover/movie', { ...POPULAR, with_original_language: 'ko', page: 1 }, 'movie'],
+  ['/discover/movie', { ...POPULAR, with_genres: '16', page: 1 }, 'movie'],
+  ['/discover/movie', { ...TOP, page: 1 }, 'movie'],
+  ['/discover/movie', { ...TOP, page: 2 }, 'movie']
 ];
 
 /** 추천 후보 목록을 한 번에 불러온다. 일부 요청이 실패해도 성공한 것만 모아서 쓴다. */
