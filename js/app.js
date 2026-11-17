@@ -132,8 +132,8 @@ async function loadDetail(item) {
   if (details[item.key] && !details[item.key].error) return;
   details[item.key] = { loading: true };
   try {
-    const { data, providers } = await fetchDetail(item);
-    details[item.key] = { data, providers };
+    const { data, providers, trailer } = await fetchDetail(item);
+    details[item.key] = { data, providers, trailer };
     if (data.overview) item.overview = data.overview;
     const isLong = item.type === 'tv' && ((data.number_of_seasons || 0) >= 3 || (data.number_of_episodes || 0) > 50);
     if (isLong && !item.dis.includes('long')) item.dis.push('long');
@@ -355,6 +355,7 @@ const actions = {
   close: () => {
     const key = S.detail;
     S.detail = null;
+    if (details[key]) details[key].playing = false; // 창을 닫으면 예고편도 멈춤
     setTimeout(() => document.querySelector(`[data-act="open"][data-v="${CSS.escape(key)}"]`)?.focus({ preventScroll: true }), 0);
   },
   wish: (key) => {
@@ -362,7 +363,16 @@ const actions = {
     toggle(S.wish, key);
     if (adding) { remember(lookup(key)); justWished = key; }
     toast(adding ? '찜 목록에 담았어요' : '찜 목록에서 뺐어요');
+    // 예고편을 보는 중이면 화면을 다시 그리지 않고 찜 버튼만 바꾼다 (다시 그리면 영상이 처음부터 다시 나와서)
+    if (S.detail === key && details[key]?.playing) {
+      const btn = document.querySelector('.panel .wish-btn');
+      if (btn) { btn.setAttribute('aria-pressed', String(adding)); btn.innerHTML = View.wishLabel(adding); }
+      save();
+      justWished = null;
+      return NO_RENDER;
+    }
   },
+  playTrailer: (key) => { if (details[key]) details[key].playing = true; },
   seen: (key) => {
     const it = lookup(key);
     S.status[key] = 'seen';

@@ -31,6 +31,7 @@ const ICON = {
   undo: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
   search: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
   back: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  play: '<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>',
   x: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
 };
 
@@ -407,6 +408,24 @@ function providerRow(label, list) {
   ).join('')}</div>`;
 }
 
+/** 상세 화면 찜 버튼 안쪽 (예고편을 보는 중에도 버튼만 바꿀 수 있게 따로 뺐다) */
+export function wishLabel(wished) {
+  return `${wished ? ICON.heartSolid : ICON.heart}${wished ? '찜했어요' : '찜하기'}`;
+}
+
+/** 예고편: 처음엔 썸네일만 보여 주고, 누르면 그 자리에서 유튜브 영상이 재생된다 */
+function trailerBox(it, det) {
+  const t = det.trailer;
+  if (!t) return '';
+  const label = t.lang === 'en' ? '예고편 (영어)' : '예고편';
+  const body = det.playing
+    ? `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.key)}?autoplay=1&playsinline=1&rel=0" title="${esc(it.title)} 예고편" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+    : `<button type="button" class="trailer-thumb" data-act="playTrailer" data-v="${it.key}" aria-label="${esc(it.title)} 예고편 재생">` +
+      `<img src="https://i.ytimg.com/vi/${encodeURIComponent(t.key)}/hqdefault.jpg" alt="" loading="lazy" onerror="this.remove()">` +
+      `<span class="trailer-play">${ICON.play}</span></button>`;
+  return `<div class="box trailer"><h2>${label}</h2><div class="trailer-frame">${body}</div></div>`;
+}
+
 export function sheetView({ S, details, lookup }) {
   const it = lookup(S.detail);
   if (!it) return '';
@@ -445,11 +464,12 @@ export function sheetView({ S, details, lookup }) {
     `<div><span class="meta">${meta}</span><div class="title" id="dtitle">${esc(it.title)}</div></div></div>` +
     (genreLine(it) ? `<span class="meta">${genreLine(it)}</span>` : '') +
     (it.overview ? `<p class="desc">${esc(it.overview)}</p>` : '<p class="desc" style="color:var(--muted)">한국어 줄거리가 아직 등록되지 않았어요.</p>') +
+    trailerBox(it, det) +
     `<div class="box"><h2>왜 재밌을까요?</h2><ul>${a.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` +
     warns +
     `<div class="box"><h2>어디서 볼 수 있어요?</h2>${where}</div>` +
     '<div class="panel-actions">' +
     (watched ? '' : `<button type="button" class="ghost" data-act="nope" data-v="${it.key}">별로예요</button><button type="button" class="ghost" data-act="seen" data-v="${it.key}">이미 봤어요</button>`) +
-    `<button type="button" class="primary wish-btn" data-act="wish" data-v="${it.key}" aria-pressed="${wished}">${wished ? ICON.heartSolid : ICON.heart}${wished ? '찜했어요' : '찜하기'}</button></div>` +
+    `<button type="button" class="primary wish-btn" data-act="wish" data-v="${it.key}" aria-pressed="${wished}">${wishLabel(wished)}</button></div>` +
     `<a class="fine" href="https://www.themoviedb.org/${it.type}/${it.id}" target="_blank" rel="noopener">TMDB에서 자세히 보기</a></div>`;
 }

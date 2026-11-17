@@ -125,11 +125,35 @@ export async function searchTitles(query) {
   return (data.results || []).map((raw) => normalize(raw, null)).filter(Boolean);
 }
 
-/** 작품 상세 정보 + 한국에서 볼 수 있는 서비스 */
+/** 영상 목록에서 유튜브 예고편 하나 고르기: 공식 예고편 > 예고편 > 티저 순 */
+function pickTrailer(results = []) {
+  const rank = (v) => (v.type === 'Trailer' ? 0 : 1) + (v.official ? 0 : 0.5);
+  const best = results
+    .filter((v) => v.site === 'YouTube' && v.key && (v.type === 'Trailer' || v.type === 'Teaser'))
+    .sort((a, b) => rank(a) - rank(b))[0];
+  return best ? { key: best.key, name: best.name || '예고편' } : null;
+}
+
+/** 예고편 찾기: 한국어 영상 먼저, 없으면 영어 영상. 없거나 실패하면 null (예고편 칸을 안 보여 준다) */
+async function fetchTrailer(item) {
+  try {
+    const ko = await tmdb(`/${item.type}/${item.id}/videos`, { language: 'ko-KR' });
+    const found = pickTrailer(ko.results);
+    if (found) return { ...found, lang: 'ko' };
+    const en = await tmdb(`/${item.type}/${item.id}/videos`, { language: 'en-US' });
+    const enFound = pickTrailer(en.results);
+    return enFound ? { ...enFound, lang: 'en' } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 작품 상세 정보 + 한국에서 볼 수 있는 서비스 + 예고편 */
 export async function fetchDetail(item) {
-  const [data, providers] = await Promise.all([
+  const [data, providers, trailer] = await Promise.all([
     tmdb(`/${item.type}/${item.id}`),
-    tmdb(`/${item.type}/${item.id}/watch/providers`, { language: null })
+    tmdb(`/${item.type}/${item.id}/watch/providers`, { language: null }),
+    fetchTrailer(item)
   ]);
-  return { data, providers: providers.results?.KR ?? null };
+  return { data, providers: providers.results?.KR ?? null, trailer };
 }
