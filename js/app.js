@@ -3,7 +3,7 @@
 
 import { APP_NAME, THEMES } from './config.js';
 import { readJSON, writeJSON } from './storage.js';
-import { fetchCatalog, fetchMore, searchTitles, fetchDetail, errorMessage } from './tmdb.js';
+import { tmdb, normalize, fetchCatalog, fetchMore, searchTitles, fetchDetail, errorMessage } from './tmdb.js';
 import { decoSVG } from './flowers.js';
 import { rankCandidates, kstDay } from './recommend.js';
 import { fillEpisodes, rememberEps } from './episodes.js';
@@ -42,6 +42,7 @@ const savedCatalog = readJSON(CATALOG_KEY, null);
 const catalog = { items: savedCatalog?.items || [], at: savedCatalog?.at || 0, loading: false, error: '' };
 const search = { q: '', items: [], loading: false, error: '', seq: 0, timer: null };
 const details = {};
+let shared = null; // 공유 링크로 연 작품 (목록에 없을 수도 있어서 따로 둔다)
 let wipeArmed = false;
 // 넷플릭스 시청 기록 불러오기 진행 상황
 const imp = { running: false, done: 0, total: 0, result: null };
@@ -67,6 +68,7 @@ function lookup(key) {
     || search.items.find((it) => it.key === key)
     || find.items.find((it) => it.key === key)
     || S.meta[key]
+    || (shared?.key === key ? shared : null)
     || null;
 }
 
@@ -437,12 +439,17 @@ function render() {
 }
 
 let toastTimer = null;
-function toast(message) {
+let undoLast = null; // 알림의 '되돌리기'를 누르면 실행할 일
+function toast(message, undo = null) {
   const t = $('#toast');
-  t.textContent = message;
+  undoLast = undo;
+  t.innerHTML = '';
+  t.append(message);
+  if (undo) t.insertAdjacentHTML('beforeend', '<button type="button" class="toast-undo" data-act="undo">되돌리기</button>');
+  t.classList.toggle('has-undo', Boolean(undo));
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 2200);
+  toastTimer = setTimeout(() => { t.hidden = true; undoLast = null; }, undo ? 5000 : 2200); // 되돌리기가 있으면 조금 더 오래
 }
 
 const toggle = (arr, v) => { const i = arr.indexOf(v); if (i === -1) arr.push(v); else arr.splice(i, 1); };
@@ -566,13 +573,44 @@ const actions = {
     const it = lookup(key);
     S.status[key] = 'seen';
     remember(it);
+    stopPreview(key, false);
+    if (details[key]) { details[key].playing = false; details[key].previewDone = false; }
     S.detail = null;
-    toast(`「${it ? it.title : ''}」 본 작품으로 옮겼어요`);
+    toast(`「${it ? it.title : ''}」 본 작품으로 옮겼어요`, () => { delete S.status[key]; });
   },
   nope: (key) => {
     if (!S.nope.includes(key)) S.nope.push(key);
+    stopPreview(key, false);
+    if (details[key]) { details[key].playing = false; details[key].previewDone = false; }
     S.detail = null;
-    toast('이 작품은 더 추천하지 않을게요');
+    toast('이 작품은 더 추천하지 않을게요', () => { S.nope = S.nope.filter((k) => k !== key); });
+  },
+  undo: () => {
+    if (!undoLast) return NO_RENDER;
+    undoLast();
+    undoLast = null;
+    clearTimeout(toastTimer);
+    $('#toast').hidden = true;
+  },
+  // 설문 없이 둘러보기: 기본값(모든 종류, 인기순)으로 바로 홈으로
+  skip: () => {
+    S.skipped = true;
+    if (!S.kinds.length) S.kinds = ['drama', 'movie', 'anime'];
+    S.screen = 'main'; S.tab = 'rec';
+    top(); loadCatalog();
+  },
+  // 작품 공유: 휴대폰 공유 창 (카톡 등) → 안 되면 링크 복사
+  share: (key) => {
+    const it = lookup(key);
+    if (!it) return NO_RENDER;
+    const url = `${location.origin}/?t=${encodeURIComponent(key)}`;
+    const text = `「${it.title}」 봄볼래에서 추천받았어요`;
+    if (navigator.share) {
+      navigator.share({ title: it.title, text, url }).catch(() => { /* 사용자가 공유 창을 닫음 */ });
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(`${text} ${url}`).then(() => toast('링크를 복사했어요. 원하는 곳에 붙여 넣어 주세요'), () => toast('링크를 복사하지 못했어요'));
+    }
+    return NO_RENDER;
   },
 
   // 월드컵
@@ -632,7 +670,7 @@ const actions = {
     toast(`${THEMES[v].name} 테마로 바꿨어요`);
   },
   reload: () => { loadCatalog(true); },
-  resurvey: () => { S.screen = 'survey'; S.q = 0; top(); },
+  resurvey: () => { S.screen = 'survey'; S.q = 0; S.detail = null; top(); },
   wipe: () => {
     if (!wipeArmed) { wipeArmed = true; return; } // 실수 방지: 두 번 눌러야 지워짐
     wipeArmed = false;
@@ -748,8 +786,29 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => { /* 실패해도 앱은 그대로 동작 */ }));
 }
 
+/** 친구가 보낸 공유 링크(?t=tv-123)로 들어오면 그 작품 상세를 바로 연다 */
+function openSharedLink() {
+  const key = new URLSearchParams(location.search).get('t');
+  history.replaceState(null, '', location.pathname); // 주소창은 깨끗하게 (새로고침해도 다시 안 열리게)
+  const m = /^(tv|movie)-(\d+)$/.exec(key || '');
+  if (!m) return;
+  if (S.screen !== 'main') { S.skipped = true; S.screen = 'main'; S.tab = 'rec'; } // 처음 온 사람도 바로 볼 수 있게
+  S.detail = key;
+  const known = lookup(key);
+  if (known) { loadDetail(known); return; }
+  // 아직 모르는 작품이면 TMDB에서 기본 정보부터 받아 온다
+  tmdb(`/${m[1]}/${m[2]}`).then((raw) => {
+    const item = normalize(raw, m[1]);
+    if (!item) { S.detail = null; render(); toast('작품 정보를 찾지 못했어요'); return; }
+    shared = item;
+    loadDetail(item);
+    render();
+  }).catch(() => { S.detail = null; render(); toast('작품 정보를 불러오지 못했어요'); });
+}
+
 /* ---------- 시작 ---------- */
 document.title = `${APP_NAME} · 안 본 작품만 골라 주는 추천`;
 startSplash();
+openSharedLink();
 render();
 if (S.screen !== 'survey') loadCatalog();

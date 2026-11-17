@@ -369,6 +369,8 @@ body[data-view="find"] .deco-br { display: none; }
 .panel-hero .title { font-size: 28px; color: var(--poster-ink); }
 .panel-hero .meta { color: var(--poster-ink); }
 .panel-hero.has-img .title, .panel-hero.has-img .meta { color: #FFFFFF; }
+.share { position: absolute !important; top: 18px; right: calc(max(18px, env(safe-area-inset-left, 0px)) + 54px); width: 44px; height: 44px; border-radius: 22px; border: none; background: var(--bg); color: var(--ink); display: flex; align-items: center; justify-content: center; }
+.panel-hero.previewing > .share { z-index: 4; }
 .close { width: 44px; height: 44px; border-radius: 22px; border: none; background: var(--bg); display: flex; align-items: center; justify-content: center; align-self: flex-end; }
 .box { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .box h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 18px; color: var(--deep); }
@@ -451,3 +453,11 @@ body[data-view="find"] .deco-br { display: none; }
 .imp-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .2s; }
 .imp-help summary { font-size: 13px; color: var(--deep); cursor: pointer; font-weight: 700; }
 .imp-help ol { margin: 8px 0 6px; padding-left: 20px; font-size: 13px; line-height: 1.6; display: flex; flex-direction: column; gap: 2px; }
+
+/* 설문 건너뛰기 · 홈 안내 · 되돌리기 */
+.skip-link { align-self: center; border: none; background: none; color: var(--muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; padding: 8px 12px; margin-top: -10px; }
+.nudge { display: flex; align-items: center; gap: 12px; justify-content: space-between; background: var(--soft); border-radius: 18px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+.nudge b { color: var(--deep); }
+.nudge .primary { flex-shrink: 0; }
+.toast.has-undo { width: calc(100% - 40px); max-width: 400px; justify-content: space-between; display: flex; align-items: center; gap: 12px; text-align: left; padding: 8px 8px 8px 18px; }
+.toast-undo { flex-shrink: 0; border: none; background: var(--accent); color: #FFFFFF; height: 34px; padding: 0 14px; border-radius: 17px; font-size: 13px; font-weight: 700; }

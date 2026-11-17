@@ -16,6 +16,7 @@ export function esc(s) {
 }
 
 const ICON = {
+  share: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
   out: '<svg class="prov-out" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h9v9M18 6L6 18"/></svg>',
   shuffle: '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9M20 4v5h-5M20 12a8 8 0 0 1-13.7 5.6L4 15M4 20v-5h5"/></svg>',
   upload: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>',
@@ -102,11 +103,12 @@ export function surveyView({ S }) {
       `<div class="opts one">${HABITS.map((h) => option('habit', h.id, h.label, h.hint, S.habit === h.id)).join('')}</div>`;
     ok = Boolean(S.habit);
   }
+  const skip = q === 0 ? '<button type="button" class="skip-link" data-act="skip">설문 없이 일단 둘러볼게요</button>' : '';
   return '<section class="survey" aria-label="취향 설문">' +
     `<div class="survey-top"><div class="progress" role="progressbar" aria-label="설문 진행" aria-valuemin="1" aria-valuemax="4" aria-valuenow="${q + 1}"><span style="width:${(q + 1) * 25}%"></span></div><span class="step">${q + 1} / 4</span></div>` +
     body +
     `<div class="survey-foot">${q > 0 ? '<button type="button" class="ghost" data-act="prev">이전</button>' : ''}` +
-    `<button type="button" class="primary" data-act="next"${ok ? '' : ' disabled'}>${q === 3 ? '본 작품 체크하러 가기' : '다음'}</button></div></section>`;
+    `<button type="button" class="primary" data-act="next"${ok ? '' : ' disabled'}>${q === 3 ? '본 작품 체크하러 가기' : '다음'}</button></div>${skip}</section>`;
 }
 
 /* ---------- 본 작품 체크 ---------- */
@@ -225,8 +227,12 @@ function heroCard({ item, a }, S, justWished, canNext) {
 }
 
 export function recView({ S, catalog, lookup, justWished, more }) {
+  // 설문을 건너뛴 사람에게: 취향을 알려 주면 더 잘 맞춘다는 안내
+  const nudge = S.skipped && !S.loves.length
+    ? '<div class="nudge"><span><b>지금은 인기순 추천이에요.</b><br>30초 설문으로 내 취향에 맞춰 보세요.</span><button type="button" class="primary sm" data-act="resurvey">취향 알려 주기</button></div>'
+    : '';
   const head = '<header class="page-head"><h1>오늘의 추천</h1></header>' +
-    `<button type="button" class="search search-entry" data-act="findOpen">${ICON.search}<span>보고 싶은 작품 찾기</span></button>`;
+    `<button type="button" class="search search-entry" data-act="findOpen">${ICON.search}<span>보고 싶은 작품 찾기</span></button>` + nudge;
   if (catalog.loading && !catalog.items.length) return head + loading('작품을 불러오는 중이에요');
   if (catalog.error && !catalog.items.length) {
     return head + empty('작품을 불러오지 못했어요', esc(catalog.error), '<br><br><button type="button" class="ghost sm" data-act="reload">다시 불러오기</button>');
@@ -540,6 +546,7 @@ export function sheetView({ S, details, lookup }) {
 
   return '<div class="panel" role="dialog" aria-modal="true" aria-labelledby="dtitle">' +
     `<div ${hero}>${preview}<button type="button" class="close" data-act="close" aria-label="닫기">${ICON.x}</button>` +
+    `<button type="button" class="share" data-act="share" data-v="${it.key}" aria-label="친구에게 공유하기">${ICON.share}</button>` +
     `<div class="hero-text"><span class="meta">${meta}</span><div class="title" id="dtitle">${esc(it.title)}</div></div></div>` +
     // 누르는 플레이어일 땐 영상이 위쪽을 다 차지하므로 제목을 영상 아래에 보여 준다
     (det.preview && det.mode === 'tap' ? `<div class="tap-title"><span class="meta">${meta}</span><div class="title">${esc(it.title)}</div></div>` : '') +
