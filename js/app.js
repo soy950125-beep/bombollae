@@ -179,16 +179,17 @@ window.addEventListener('message', (e) => {
   if (!det?.preview) return;
   let data;
   try { data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
-  if (data.event === 'onReady' && !det.userMuted) {
+  if (data.event === 'onReady' && !det.userMuted && det.mode === 'auto') {
     det.unmuteAt = Date.now();
     ytSend({ event: 'command', func: 'unMute', args: [] });
     ytSend({ event: 'command', func: 'playVideo', args: [] });
   }
   const info = data.info || {};
+  if (info.playerState === 1) det.started = true; // 재생 시작됨
   // 영상이 끝나면(0) 유튜브 추천 화면이 뜨기 전에 바로 포스터 이미지로 돌아간다
   if (info.playerState === 0) { stopPreview(S.detail, true); return; }
   // 소리를 켜자마자 멈췄다면(2) 브라우저가 소리 자동 재생을 막은 것 → 소리 없이 다시 재생
-  if (info.playerState === 2 && det.unmuteAt && Date.now() - det.unmuteAt < 4000) {
+  if (det.mode === 'auto' && info.playerState === 2 && det.unmuteAt && Date.now() - det.unmuteAt < 4000) {
     det.unmuteAt = 0;
     det.muted = true;
     ytSend({ event: 'command', func: 'mute', args: [] });
@@ -197,7 +198,7 @@ window.addEventListener('message', (e) => {
     return;
   }
   // 아이폰처럼 소리를 막는 기기에선 계속 '음소거' 상태로 알려 주므로, 버튼이 실제 상태를 따라가게 한다
-  if (typeof info.muted === 'boolean' && info.muted !== det.muted) {
+  if (det.mode === 'auto' && typeof info.muted === 'boolean' && info.muted !== det.muted) {
     det.muted = info.muted;
     paintMute(det.muted);
   }
@@ -206,18 +207,35 @@ let previewTimer = null;
 const canAutoplay = () =>
   !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !(navigator.connection && navigator.connection.saveData);
 
+// 아이폰 '홈 화면에 추가' 앱은 영상 자동 재생을 막는다 → 처음부터 직접 누르는 플레이어로
+const isIOSApp = () => /iphone|ipad|ipod/i.test(navigator.userAgent) && isInstalled();
+const AUTOPLAY_WAIT_MS = 4000; // 이 안에 재생이 시작 안 되면 막힌 것으로 보고 누르는 플레이어로 바꾼다
+let autoplayCheck = null;
+
 function startPreview(key, byUser = false) {
   const det = details[key];
   if (!det?.trailer || det.previewDone || (!byUser && !canAutoplay())) return;
   det.preview = true;
+  det.started = false;
   det.muted = true;      // 소리 켜기에 성공하면 유튜브가 알려 줘서 바뀐다
   det.userMuted = false;
+  det.mode = isIOSApp() ? 'tap' : 'auto';
   clearTimeout(previewTimer);
-  previewTimer = setTimeout(() => stopPreview(key, true), PREVIEW_MS);
+  clearTimeout(autoplayCheck);
+  if (det.mode === 'auto') {
+    previewTimer = setTimeout(() => stopPreview(key, true), PREVIEW_MS);
+    autoplayCheck = setTimeout(() => {
+      if (S.detail !== key || !det.preview || det.started) return;
+      det.mode = 'tap';               // 자동 재생이 막혔다 → 유튜브 재생 버튼을 직접 누르게
+      clearTimeout(previewTimer);     // 사용자가 직접 튼 영상은 30초에 끊지 않는다
+      paintSheet();
+    }, AUTOPLAY_WAIT_MS);
+  }
 }
 
 function stopPreview(key, repaint) {
   clearTimeout(previewTimer);
+  clearTimeout(autoplayCheck);
   const det = details[key];
   if (!det?.preview) return;
   det.preview = false;

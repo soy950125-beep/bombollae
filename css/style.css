@@ -351,6 +351,14 @@ body[data-view="find"] .deco-br { display: none; }
 .hero-replay svg { width: 18px; height: 18px; color: var(--deep); }
 .hero-mute[aria-pressed="true"] { background: rgba(255, 255, 255, .92); color: #3D2B33; border-color: transparent; }
 .panel-hero.previewing .title, .panel-hero.previewing .meta { padding-right: 52px; display: block; }
+.panel-hero > .hero-video.tap { pointer-events: auto; animation: none; z-index: 3; background: #000; }
+.hero-video.tap iframe { transform: translate(-50%, -50%); } /* 재생 버튼·조작 막대가 보이도록 확대하지 않음 */
+.panel-hero.tapmode > .hero-text { visibility: hidden; }
+.panel-hero.previewing > .close { z-index: 4; }
+.tap-title { display: flex; flex-direction: column; gap: 4px; margin-top: -4px; }
+.tap-title .title { font-size: 24px; }
+.trailer-note { margin: -6px 0 0; font-size: 13px; color: var(--muted); }
+.trailer-note a { font-weight: 700; }
 @keyframes hero-video-in { from { opacity: 0; } to { opacity: 1; } }
 .where-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .where-actions .mini { text-decoration: none; color: var(--ink); }
