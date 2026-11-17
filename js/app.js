@@ -213,14 +213,14 @@ let previewTimer = null;
 const canAutoplay = () =>
   !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !(navigator.connection && navigator.connection.saveData);
 
-// 아이폰 '홈 화면에 추가' 앱은 영상 자동 재생을 막는다 → 처음부터 직접 누르는 플레이어로
+// 홈 화면에 설치한 앱에서는 기기마다 영상 자동 재생이 막혀서 예고편을 넣지 않는다 (유튜브로 바로 가는 버튼만)
 const isIOSApp = () => /iphone|ipad|ipod/i.test(navigator.userAgent) && isInstalled();
 const AUTOPLAY_WAIT_MS = 4000; // 이 안에 재생이 시작 안 되면 막힌 것으로 보고 누르는 플레이어로 바꾼다
 let autoplayCheck = null;
 
 function startPreview(key, byUser = false) {
   const det = details[key];
-  if (!det?.trailer || det.previewDone || (!byUser && !canAutoplay())) return;
+  if (!det?.trailer || det.previewDone || isInstalled() || (!byUser && !canAutoplay())) return;
   det.preview = true;
   det.started = false;
   det.muted = true;      // 소리 켜기에 성공하면 유튜브가 알려 줘서 바뀐다
@@ -272,6 +272,7 @@ const $ = (sel) => document.querySelector(sel);
 const context = () => ({
   S, catalog, search, details, lookup, wipeArmed, cup, find, justWished,
   imp,
+  appMode: isInstalled(),
   more: { loading: more.loading, exhausted: moreExhausted(S.filter) },
   install: { installed: isInstalled(), canPrompt: Boolean(installPrompt), help: installHelp,
     ios: /iphone|ipad|ipod/i.test(navigator.userAgent), inApp: /KAKAOTALK|Instagram|FBAN|FBAV|NAVER/i.test(navigator.userAgent) },

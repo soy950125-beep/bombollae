@@ -494,7 +494,7 @@ export function wishLabel(wished) {
   return `${wished ? ICON.heartSolid : ICON.heart}${wished ? '찜했어요' : '찜하기'}`;
 }
 
-export function sheetView({ S, details, lookup }) {
+export function sheetView({ S, details, lookup, appMode }) {
   const it = lookup(S.detail);
   if (!it) return '';
   const det = details[it.key] || { loading: true };
@@ -540,6 +540,9 @@ export function sheetView({ S, details, lookup }) {
       ? `<div class="hero-video tap"><iframe src="${ytBase}&controls=1" title="${esc(it.title)} 예고편" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`
       : `<div class="hero-video" aria-hidden="true"><iframe src="${ytBase}&autoplay=1&mute=1&controls=0&disablekb=1" tabindex="-1" title="${esc(it.title)} 예고편 미리보기" allow="autoplay; encrypted-media"></iframe></div>` +
         `<button type="button" class="hero-mute" data-act="toggleMute" data-v="${it.key}" aria-pressed="${det.muted !== false}" aria-label="${det.muted !== false ? '소리 켜기' : '소리 끄기'}">${muteIcon(det.muted !== false)}</button>`
+    : det.trailer && appMode
+      // 설치한 앱: 화면 안에서 재생하지 않고 유튜브(앱)로 바로 보내 준다
+      ? `<a class="hero-replay" href="https://www.youtube.com/watch?v=${encodeURIComponent(det.trailer.key)}" target="_blank" rel="noopener">${ICON.play}유튜브에서 예고편 보기</a>`
     : det.trailer
       ? `<button type="button" class="hero-replay" data-act="replayTrailer" data-v="${it.key}">${ICON.play}${det.previewDone ? '예고편 다시 보기' : '예고편 보기'}</button>`
       : '';
@@ -552,7 +555,7 @@ export function sheetView({ S, details, lookup }) {
     (det.preview && det.mode === 'tap' ? `<div class="tap-title"><span class="meta">${meta}</span><div class="title">${esc(it.title)}</div></div>` : '') +
     (genreLine(it) ? `<span class="meta">${genreLine(it)}</span>` : '') +
     (it.overview ? `<p class="desc">${esc(it.overview)}</p>` : '<p class="desc" style="color:var(--muted)">한국어 줄거리가 아직 등록되지 않았어요.</p>') +
-    (det.trailer?.lang === 'en'
+    (det.trailer?.lang === 'en' && !appMode
       ? `<p class="trailer-note">지금 나오는 예고편은 영어예요. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(`${it.title} 예고편`)}" target="_blank" rel="noopener">유튜브에서 한국어 예고편 찾기</a></p>`
       : '') +
     `<div class="box"><h2>왜 재밌을까요?</h2><ul>${a.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` +

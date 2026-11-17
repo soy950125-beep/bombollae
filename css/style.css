@@ -352,6 +352,7 @@ body[data-view="find"] .deco-br { display: none; }
 .hero-replay { position: absolute !important; left: 14px; top: 22px; z-index: 3; height: 40px; padding: 0 16px 0 10px; border-radius: 20px; border: none;
   background: rgba(255, 255, 255, .92); color: #3D2B33; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, .2); }
+a.hero-replay { text-decoration: none; }
 .hero-replay svg { width: 18px; height: 18px; color: var(--deep); }
 .hero-mute[aria-pressed="true"] { background: rgba(255, 255, 255, .92); color: #3D2B33; border-color: transparent; }
 .panel-hero.previewing .title, .panel-hero.previewing .meta { padding-right: 52px; display: block; }
