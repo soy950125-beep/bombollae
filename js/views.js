@@ -5,6 +5,7 @@ import {
   APP_NAME, KINDS, KIND_HINT, TAGS, TAG_HINT, DIS, DIS_HINT, HABITS, THEMES, GENRE_NAME, IMG_BASE, POSTER_COLORS, GENRE_GROUPS, SORTS
 } from './config.js';
 import { FLOWER_ICONS } from './flowers.js';
+import { epsSpan } from './episodes.js';
 import { analyze, rankCandidates, buildShelves, filterAndSort } from './recommend.js';
 
 /* ---------- 작은 도우미 ---------- */
@@ -126,7 +127,7 @@ function pick(it, S) {
   return `<div class="pick-wrap" data-state="${st}">` +
     `<button type="button" class="pick" data-act="mark" data-v="${it.key}" data-state="${st}" aria-pressed="${seen}" aria-label="${esc(it.title)}, ${seen ? '봤어요' : '안 봤어요'}">` +
     poster(it, 'w185', check) +
-    `<span class="pname">${esc(it.title)}</span><span class="pmeta">${KINDS[it.kind]}${it.year ? ' · ' + it.year : ''}${label ? ' · ' + label : ''}</span></button>` +
+    `<span class="pname">${esc(it.title)}</span><span class="pmeta">${KINDS[it.kind]}${it.year ? ' · ' + it.year : ''}${epsSpan(it)}${label ? ' · ' + label : ''}</span></button>` +
     `<button type="button" class="pick-star" data-act="best" data-v="${it.key}" aria-pressed="${best}" aria-label="${esc(it.title)} ${best ? '인생작 취소' : '인생작으로 표시'}">${best ? ICON.starFill : ICON.starLine}</button>` +
     '</div>';
 }
@@ -165,7 +166,7 @@ function tile({ item }, S, justWished) {
     `<button type="button" class="tile-open" data-act="open" data-v="${item.key}" aria-label="${esc(item.title)} 자세히 보기">` +
     poster(item, 'w342') +
     `<span class="tile-title">${esc(item.title)}</span>` +
-    `<span class="tile-meta">${[KINDS[item.kind], item.year].filter(Boolean).join(' · ')}</span>` +
+    `<span class="tile-meta">${[KINDS[item.kind], item.year].filter(Boolean).join(' · ')}${epsSpan(item)}</span>` +
     `<span class="tile-sum">${esc(summary)}</span></button>` +
     `<button type="button" class="tile-heart${justWished === item.key ? ' heart-pop' : ''}" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${esc(item.title)} ${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
     '</div>';
@@ -176,11 +177,10 @@ function heroCard({ item, a }, S, justWished) {
   const wished = S.wish.includes(item.key);
   const img = item.backdrop ? `${IMG_BASE}w780${item.backdrop}` : item.poster ? `${IMG_BASE}w500${item.poster}` : '';
   const style = `background-color:${colorFor(item.key)}${img ? `;background-image:url(${img})` : ''}`;
-  const meta = [KINDS[item.kind], item.year, genreLine(item)].filter(Boolean).join(' · ');
   return `<article class="hero${img ? ' has-img' : ''}" style="${style}">` +
     '<span class="hero-eyebrow">오늘의 1순위</span>' +
     `<h2 class="hero-title">${esc(item.title)}</h2>` +
-    `<span class="hero-meta">${meta}</span>` +
+    `<span class="hero-meta">${[KINDS[item.kind], item.year].filter(Boolean).join(' · ')}${epsSpan(item)}${genreLine(item) ? ' · ' + genreLine(item) : ''}</span>` +
     `<p class="hero-reason">${esc(a.reasons[0])}</p>` +
     '<div class="hero-actions">' +
     `<button type="button" class="hero-open" data-act="open" data-v="${item.key}">자세히 보기</button>` +
@@ -278,7 +278,7 @@ function contender(it) {
   return `<button type="button" class="contender" data-act="cupPick" data-v="${it.key}" aria-label="${esc(it.title)} 고르기">` +
     poster(it, 'w342') +
     `<span class="contender-title">${esc(it.title)}</span>` +
-    `<span class="tile-meta">${[KINDS[it.kind], it.year].filter(Boolean).join(' · ')}</span>` +
+    `<span class="tile-meta">${[KINDS[it.kind], it.year].filter(Boolean).join(' · ')}${epsSpan(it)}</span>` +
     `<span class="contender-sum">${esc(summary)}</span></button>`;
 }
 
@@ -307,7 +307,7 @@ export function cupView({ S, cup, cupCount, catalog, lookup }) {
     return '<header class="page-head"><span class="eyebrow">최종 선택</span><h1>오늘의 한 편은</h1></header>' +
       '<div class="cup-win">' + poster(w, 'w500') +
       `<h2 class="cup-win-title">${esc(w.title)}</h2>` +
-      `<span class="meta">${[KINDS[w.kind], w.year, genreLine(w)].filter(Boolean).join(' · ')}</span>` +
+      `<span class="meta">${[KINDS[w.kind], w.year].filter(Boolean).join(' · ')}${epsSpan(w)}${genreLine(w) ? ' · ' + genreLine(w) : ''}</span>` +
       (w.overview ? `<p class="desc">${esc(w.overview)}</p>` : '') +
       `<div class="box"><h2>이런 점이 잘 맞을 거예요</h2><ul>${a.reasons.slice(0, 3).map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` +
       '<div class="cup-actions">' +
@@ -329,7 +329,7 @@ export function cupView({ S, cup, cupCount, catalog, lookup }) {
 function findTile(it, S) {
   const st = S.status[it.key];
   const badge = st ? `<span class="find-badge">${st === 'best' ? '인생작' : '봤어요'}</span>` : '';
-  const meta = [KINDS[it.kind], it.year, it.vote ? `★ ${it.vote.toFixed(1)}` : ''].filter(Boolean).join(' · ');
+  const meta = [KINDS[it.kind], it.year].filter(Boolean).join(' · ') + epsSpan(it) + (it.vote ? ` · ★ ${it.vote.toFixed(1)}` : '');
   return `<button type="button" class="pick" data-act="open" data-v="${it.key}" aria-label="${esc(it.title)} 자세히 보기">` +
     poster(it, 'w185', badge) +
     `<span class="pname">${esc(it.title)}</span><span class="pmeta">${meta}</span></button>`;

@@ -6,6 +6,7 @@ import { readJSON, writeJSON } from './storage.js';
 import { fetchCatalog, fetchMore, searchTitles, fetchDetail, errorMessage } from './tmdb.js';
 import { decoSVG } from './flowers.js';
 import { rankCandidates } from './recommend.js';
+import { fillEpisodes, rememberEps } from './episodes.js';
 import * as View from './views.js';
 
 const STATE_KEY = 'bombollae-state-v1';
@@ -230,6 +231,7 @@ async function loadDetail(item) {
   try {
     const { data, providers, trailer } = await fetchDetail(item);
     details[item.key] = { data, providers, trailer };
+    rememberEps(item, data);
     if (data.overview) item.overview = data.overview;
     const isLong = item.type === 'tv' && ((data.number_of_seasons || 0) >= 3 || (data.number_of_episodes || 0) > 50);
     if (isLong && !item.dis.includes('long')) item.dis.push('long');
@@ -298,7 +300,7 @@ function applyTheme() {
 
 function paintGrid() {
   const grid = $('#wgrid');
-  if (grid) grid.innerHTML = View.watchedGrid(context());
+  if (grid) { grid.innerHTML = View.watchedGrid(context()); fillEpisodes(); }
 }
 
 function paintFind() {
@@ -306,6 +308,7 @@ function paintFind() {
   if (!grid) return;
   const { count, html } = View.findResults(context());
   grid.innerHTML = html;
+  fillEpisodes();
   $('#fcount').innerHTML = count;
   const clear = document.querySelector('[data-act="findClear"]');
   if (clear) clear.hidden = !find.q;
@@ -367,6 +370,7 @@ function render() {
   paintSheet();
   justWished = null; // 효과는 한 번만
   setTimeout(ensureEnough, 0);
+  setTimeout(fillEpisodes, 0); // 화면에 보이는 드라마·애니의 회차 수 채우기
 
   if (active) {
     const [act, v] = active.split('|');
