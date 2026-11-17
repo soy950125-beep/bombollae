@@ -144,6 +144,10 @@ body[data-view="rec"] .deco-br, body[data-view="cup"] .deco-br, body[data-view="
 .hero-actions { display: flex; gap: 8px; margin-top: 10px; }
 .hero-open { flex: 1; height: 46px; border-radius: 23px; border: none; background: #FFFFFF; color: #3D2B33; font-family: var(--font-display); font-size: 16px; }
 .hero-heart { width: 46px; height: 46px; border-radius: 23px; border: 1.5px solid rgba(255,255,255,.7); background: rgba(255,255,255,.18); color: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+.hero-next { height: 46px; padding: 0 14px; border-radius: 23px; border: 1.5px solid rgba(255,255,255,.7); background: rgba(255,255,255,.18); color: #FFFFFF; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.hero:not(.has-img) .hero-next { border-color: var(--deep); color: var(--deep); background: transparent; }
+.hero.swap { animation: heroSwap .35s ease; }
+@keyframes heroSwap { from { opacity: .3; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 .hero:not(.has-img) .hero-heart { border-color: var(--deep); color: var(--deep); background: transparent; }
 .hero-heart[aria-pressed="true"] { color: #FF5C72; }
 .hero:not(.has-img) .hero-heart[aria-pressed="true"] { color: var(--heart); border-color: var(--heart); }
@@ -381,6 +385,10 @@ body[data-view="find"] .deco-br { display: none; }
 .trailer-thumb:hover .trailer-play { transform: translate(-50%, -50%) scale(1.08); }
 .providers { display: flex; flex-wrap: wrap; gap: 8px; }
 .prov { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 6px; border-radius: 20px; background: var(--soft); font-size: 13px; }
+.prov-link { text-decoration: none; color: var(--ink); border: 1px solid var(--accent); background: var(--card); }
+.prov-link .prov-out { color: var(--deep); margin-left: -2px; }
+.prov-link:active { background: var(--soft); }
+.where-tip { margin: 0; font-size: 13px; color: var(--deep); font-weight: 700; }
 .prov img { width: 28px; height: 28px; border-radius: 8px; }
 .prov-kind { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
 .warn { background: var(--soft); border-radius: 18px; padding: 14px 16px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
@@ -431,3 +439,15 @@ body[data-view="find"] .deco-br { display: none; }
   .splash-name, .splash-tag { opacity: 1; transform: none; }
   .fall { display: none; }
 }
+
+/* 넷플릭스 시청 기록으로 한 번에 체크 */
+.imp { margin: 4px 0 14px; }
+.imp-btn { height: 48px; border-radius: 24px; background: var(--accent); color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--font-display); font-size: 16px; cursor: pointer; }
+.imp-btn:active { filter: brightness(.95); }
+.imp-btn:focus-within { outline: 3px solid var(--deep); outline-offset: 2px; }
+.imp-status { margin: 0; font-size: 14px; line-height: 1.55; }
+.imp-missed { color: var(--muted); font-size: 12px; }
+.imp-bar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
+.imp-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .2s; }
+.imp-help summary { font-size: 13px; color: var(--deep); cursor: pointer; font-weight: 700; }
+.imp-help ol { margin: 8px 0 6px; padding-left: 20px; font-size: 13px; line-height: 1.6; display: flex; flex-direction: column; gap: 2px; }

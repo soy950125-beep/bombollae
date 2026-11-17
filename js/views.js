@@ -16,6 +16,9 @@ export function esc(s) {
 }
 
 const ICON = {
+  out: '<svg class="prov-out" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h9v9M18 6L6 18"/></svg>',
+  shuffle: '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9M20 4v5h-5M20 12a8 8 0 0 1-13.7 5.6L4 15M4 20v-5h5"/></svg>',
+  upload: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>',
   star: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
   heart: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   heartLg: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
@@ -147,10 +150,35 @@ export function watchedGrid({ S, catalog, search }) {
   return catalog.items.filter(byKind).sort((a, b) => b.pop - a.pop).slice(0, 90).map((it) => pick(it, S)).join('');
 }
 
+/** 넷플릭스 시청 기록으로 한 번에 체크하는 칸 (본 작품 체크 화면·본 작품 탭에서 함께 쓴다) */
+export function importBox({ imp }) {
+  let body;
+  if (imp.running) {
+    const pct = imp.total ? Math.round((imp.done / imp.total) * 100) : 0;
+    body = `<p class="imp-status">${imp.total}개 중 <b>${imp.done}</b>개 확인 중이에요…</p>` +
+      `<div class="imp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>`;
+  } else {
+    const result = imp.result
+      ? `<p class="imp-status" role="status">${imp.result.error ? esc(imp.result.error)
+        : `<b>${imp.result.added}개</b>를 본 작품으로 체크했어요.${imp.result.already ? ` 이미 체크돼 있던 ${imp.result.already}개는 그대로 뒀어요.` : ''}` +
+          (imp.result.missed.length ? `<br><span class="imp-missed">못 찾은 작품 ${imp.result.missed.length}개: ${imp.result.missed.slice(0, 6).map(esc).join(', ')}${imp.result.missed.length > 6 ? ' 등' : ''}</span>` : '')}</p>`
+      : '';
+    body = `<label class="imp-btn">${ICON.upload}<span>시청 기록 파일 올리기</span><input type="file" id="nfcsv" accept=".csv,text/csv" hidden></label>` + result +
+      '<details class="imp-help"><summary>파일은 어디서 받아요?</summary><ol>' +
+      '<li>인터넷 브라우저로 <b>netflix.com</b>에 로그인해요 (앱에서는 안 돼요)</li>' +
+      '<li>오른쪽 위 프로필 → <b>계정</b> → <b>프로필</b>에서 내 프로필을 골라요</li>' +
+      '<li><b>시청 기록</b>을 누르고, 맨 아래 <b>모두 다운로드</b>를 눌러요</li>' +
+      '<li>받은 파일(NetflixViewingHistory.csv)을 위 버튼으로 올리면 끝!</li></ol>' +
+      '<p class="fine">파일은 이 기기 안에서만 읽어요. 작품 이름으로 검색만 하고, 파일은 어디에도 보내지 않아요.</p></details>';
+  }
+  return `<section class="box imp" id="impBox" aria-label="넷플릭스 시청 기록으로 한 번에 체크"><h2>넷플릭스 시청 기록으로 한 번에 체크</h2>${body}</section>`;
+}
+
 export function watchedView(ctx) {
   const { S, search } = ctx;
   const c = counts(S);
   return '<header class="page-head"><h1>본 작품 체크</h1><p>본 작품을 눌러 주세요. 특히 재밌었던 작품은 <b>★</b>을 눌러 <b>인생작</b>으로!</p></header>' +
+    importBox(ctx) +
     `<div class="tools"><label class="search">${ICON.search}<input id="wsearch" type="search" placeholder="보고 싶은 작품 찾기" aria-label="보고 싶은 작품 찾기" autocomplete="off" value="${esc(search.q)}"></label>${kindChips('wkind', S.wfilter)}</div>` +
     `<div class="pgrid" id="wgrid">${watchedGrid(ctx)}</div>` +
     `<div class="bar"><span><span class="count">${c.seen}</span>개 체크 · 인생작 ${c.best}개</span><button type="button" class="primary sm" data-act="done">추천 받기</button></div>`;
@@ -180,7 +208,7 @@ function rankTile({ item }, rank) {
 }
 
 /** 맨 위 큰 카드: 오늘의 1순위 */
-function heroCard({ item, a }, S, justWished) {
+function heroCard({ item, a }, S, justWished, canNext) {
   const wished = S.wish.includes(item.key);
   const img = item.backdrop ? `${IMG_BASE}w780${item.backdrop}` : item.poster ? `${IMG_BASE}w500${item.poster}` : '';
   const style = `background-color:${colorFor(item.key)}${img ? `;background-image:url(${img})` : ''}`;
@@ -191,6 +219,7 @@ function heroCard({ item, a }, S, justWished) {
     `<p class="hero-reason">${esc(a.reasons[0])}</p>` +
     '<div class="hero-actions">' +
     `<button type="button" class="hero-open" data-act="open" data-v="${item.key}">자세히 보기</button>` +
+    (canNext ? `<button type="button" class="hero-next" data-act="heroNext" aria-label="다른 1순위 추천 보기">${ICON.shuffle}다른 추천</button>` : '') +
     `<button type="button" class="hero-heart${justWished === item.key ? ' heart-pop' : ''}" data-act="wish" data-v="${item.key}" aria-pressed="${wished}" aria-label="${wished ? '찜 취소' : '찜하기'}">${wished ? ICON.heartSolid : ICON.heart}</button>` +
     '</div></article>';
 }
@@ -209,7 +238,7 @@ export function recView({ S, catalog, lookup, justWished, more }) {
       empty('지금 추천할 작품을 다 봤어요!', '다른 종류도 둘러보거나, 찾기에서 장르로 골라 보세요.',
         '<br><br><button type="button" class="ghost sm" data-act="filter" data-v="all">전체 작품 보기</button> <button type="button" class="ghost sm" data-act="findOpen">찾기로 둘러보기</button>');
   }
-  const { hero, top10, rows } = buildShelves(ranked, S, lookup);
+  const { hero, top10, rows, heroChoices } = buildShelves(ranked, S, lookup);
   const rank = top10.length
     ? '<section class="shelf rank-shelf" aria-label="다들 봤는데 나만 안 본 TOP 10">' +
       '<h2 class="shelf-title">다들 봤는데 나만 안 본 TOP 10</h2>' +
@@ -226,7 +255,7 @@ export function recView({ S, catalog, lookup, justWished, more }) {
     `<button type="button" class="shelf-arrow next" data-act="shelfMove" data-v="${esc(row.id)}|1" aria-label="${esc(row.title)} 다음 작품 보기">${ICON.back}</button>` +
     `<div class="shelf-scroll" data-row="${esc(row.id)}">${row.items.map((x) => tile(x, S, justWished)).join('')}</div></section>`
   ).join('');
-  return head + kindChips('filter', S.filter) + heroCard(hero, S, justWished) + rank + shelves;
+  return head + kindChips('filter', S.filter) + heroCard(hero, S, justWished, heroChoices > 1) + rank + shelves;
 }
 
 export function wishView({ S, lookup, justWished }) {
@@ -252,7 +281,8 @@ function installBox(install) {
     '<p class="fine">홈 화면에 벚꽃 아이콘이 생기고, 주소창 없이 앱처럼 열려요.</p>' + help + '</div>';
 }
 
-export function seenView({ S, lookup, catalog, wipeArmed, install }) {
+export function seenView(ctx) {
+  const { S, lookup, catalog, wipeArmed, install } = ctx;
   const list = Object.keys(S.status).map(lookup).filter(Boolean);
   const c = counts(S);
   const mins = catalog.at ? Math.round((Date.now() - catalog.at) / 60000) : 0;
@@ -260,7 +290,7 @@ export function seenView({ S, lookup, catalog, wipeArmed, install }) {
   return `<header class="page-head"><span class="eyebrow">봤어요 ${c.seen}개 · 인생작 ${c.best}개</span><h1>본 작품</h1></header>` +
     (list.length ? `<div class="pgrid">${list.map((it) => pick(it, S)).join('')}</div>`
       : empty('아직 체크한 작품이 없어요', '본 작품을 체크하면 추천에서 빠져요.')) +
-    '<button type="button" class="ghost" data-act="more">본 작품 더 체크하기</button>' +
+    '<button type="button" class="ghost" data-act="more">본 작품 더 체크하기</button>' + importBox(ctx) +
     '<h2 class="section-title">설정</h2>' + installBox(install) + '<div class="settings">' +
     `<button type="button" class="ghost sm" data-act="reload">작품 목록 새로 불러오기 (${when})</button>` +
     '<button type="button" class="ghost sm" data-act="resurvey">취향 설문 다시 하기</button>' +
@@ -421,11 +451,31 @@ export function navView({ S }) {
 
 /* ---------- 작품 상세 ---------- */
 
-function providerRow(label, list) {
+// 서비스 이름 → 그 서비스에서 제목으로 바로 찾아 주는 주소 (휴대폰에 앱이 깔려 있으면 앱으로 열린다)
+const PROVIDER_SEARCH = [
+  [/netflix|넷플릭스/i, 'https://www.netflix.com/search?q='],
+  [/tving|티빙/i, 'https://www.tving.com/search?keyword='],
+  [/wavve|웨이브/i, 'https://www.wavve.com/search?searchWord='],
+  [/watcha|왓챠/i, 'https://watcha.com/search?query='],
+  [/laftel|라프텔/i, 'https://laftel.net/search?keyword='],
+  [/disney|디즈니/i, 'https://www.disneyplus.com/search?q='],
+  [/apple|애플/i, 'https://tv.apple.com/kr/search?term=']
+];
+
+function providerUrl(name, title, fallback) {
+  const hit = PROVIDER_SEARCH.find(([re]) => re.test(name || ''));
+  return hit ? hit[1] + encodeURIComponent(title) : fallback || '';
+}
+
+function providerRow(label, list, title, fallback) {
   if (!list?.length) return '';
-  return `<p class="prov-kind">${label}</p><div class="providers">${list.map((p) =>
-    `<span class="prov">${p.logo_path ? `<img src="${IMG_BASE}w92${p.logo_path}" alt="">` : ''}${esc(p.provider_name)}</span>`
-  ).join('')}</div>`;
+  return `<p class="prov-kind">${label}</p><div class="providers">${list.map((p) => {
+    const inner = `${p.logo_path ? `<img src="${IMG_BASE}w92${p.logo_path}" alt="">` : ''}${esc(p.provider_name)}`;
+    const url = providerUrl(p.provider_name, title, fallback);
+    return url
+      ? `<a class="prov prov-link" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(p.provider_name)}에서 바로 보러 가기">${inner}${ICON.out}</a>`
+      : `<span class="prov">${inner}</span>`;
+  }).join('')}</div>`;
 }
 
 /** 예고편 미리보기 음소거 버튼 아이콘 */
@@ -463,7 +513,9 @@ export function sheetView({ S, details, lookup }) {
   else {
     const p = det.providers;
     where = p && (p.flatrate || p.rent || p.buy)
-      ? providerRow('구독해서 보기', p.flatrate) + providerRow('대여', p.rent) + providerRow('구매', p.buy) + '<p class="fine">정보 제공: JustWatch · 실제 서비스 상황과 다를 수 있어요</p>'
+      ? '<p class="where-tip">서비스 이름을 누르면 바로 보러 갈 수 있어요</p>' +
+        providerRow('구독해서 보기', p.flatrate, it.title, p.link) + providerRow('대여', p.rent, it.title, p.link) + providerRow('구매', p.buy, it.title, p.link) +
+        '<p class="fine">정보 제공: JustWatch · 실제 서비스 상황과 다를 수 있어요</p>'
       : '<p class="desc">아직 한국 OTT 정보가 등록되지 않은 작품이에요. 아래 버튼으로 바로 찾아볼 수 있어요.</p>' +
         '<div class="where-actions">' +
         `<a class="mini" href="https://www.google.com/search?q=${encodeURIComponent(`${it.title} 다시보기`)}" target="_blank" rel="noopener">${ICON.search}볼 수 있는 곳 검색</a>` +

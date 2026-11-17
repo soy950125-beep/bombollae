@@ -85,9 +85,19 @@ export function rankCandidates(catalog, state, lookup) {
  * 홈 화면 구성: 1순위 작품 하나(hero) + 이유별 가로 줄(rows).
  * 같은 작품이 여러 줄에 겹쳐 나오지 않도록, 앞 줄에서 쓴 작품은 다음 줄에서 뺀다.
  */
+/** 한국 시간 기준 오늘이 1970-01-01부터 며칠째인지 (날마다 1씩 커진다) */
+export function kstDay(now = Date.now()) {
+  return Math.floor((now + 9 * 3600 * 1000) / 86400000);
+}
+
 export function buildShelves(ranked, state, lookup) {
   if (!ranked.length) return { hero: null, rows: [] };
-  const hero = ranked[0];
+  // 오늘의 1순위: 점수가 가장 높은 5편 중에서 날짜에 따라 돌아가며 고른다 (한국 시간 기준 자정에 바뀜).
+  // '다른 추천' 버튼을 누를 때마다 그다음 작품으로 넘어간다.
+  const heroChoices = Math.min(5, ranked.length);
+  const today = kstDay();
+  const shift = state.heroPick?.day === today ? state.heroPick.n : 0;
+  const hero = ranked[(today + shift) % heroChoices];
   const used = new Set([hero.item.key]);
   const rows = [];
 
@@ -133,7 +143,7 @@ export function buildShelves(ranked, state, lookup) {
   addRow('top', '평이 아주 좋은 작품', (it) => it.vote >= 7.8, { sort: (x, y) => y.item.vote - x.item.vote });
   addRow('popular', '지금 많이 보는 작품', () => true, { sort: (x, y) => y.item.pop - x.item.pop, min: 1 });
 
-  return { hero, top10: top10.length >= 5 ? top10 : [], rows };
+  return { hero, heroChoices, top10: top10.length >= 5 ? top10 : [], rows };
 }
 
 /**

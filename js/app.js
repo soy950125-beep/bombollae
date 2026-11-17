@@ -5,8 +5,9 @@ import { APP_NAME, THEMES } from './config.js';
 import { readJSON, writeJSON } from './storage.js';
 import { fetchCatalog, fetchMore, searchTitles, fetchDetail, errorMessage } from './tmdb.js';
 import { decoSVG } from './flowers.js';
-import { rankCandidates } from './recommend.js';
+import { rankCandidates, kstDay } from './recommend.js';
 import { fillEpisodes, rememberEps } from './episodes.js';
+import { parseViewingHistory, importNames } from './netflix.js';
 import * as View from './views.js';
 
 const STATE_KEY = 'bombollae-state-v1';
@@ -42,6 +43,9 @@ const catalog = { items: savedCatalog?.items || [], at: savedCatalog?.at || 0, l
 const search = { q: '', items: [], loading: false, error: '', seq: 0, timer: null };
 const details = {};
 let wipeArmed = false;
+// 넷플릭스 시청 기록 불러오기 진행 상황
+const imp = { running: false, done: 0, total: 0, result: null };
+let heroSwapped = false; // 방금 '다른 추천'을 눌렀는지 (새 카드가 살짝 밀려 들어오는 효과)
 let justWished = null;  // 방금 찜한 작품 (그 하트만 톡 커지는 효과를 주려고)
 let themeOpen = false;
 let installPrompt = null;   // 안드로이드 크롬이 주는 '앱 설치' 창 (나중에 버튼을 누를 때 띄운다)
@@ -265,6 +269,7 @@ async function loadDetail(item) {
 const $ = (sel) => document.querySelector(sel);
 const context = () => ({
   S, catalog, search, details, lookup, wipeArmed, cup, find, justWished,
+  imp,
   more: { loading: more.loading, exhausted: moreExhausted(S.filter) },
   install: { installed: isInstalled(), canPrompt: Boolean(installPrompt), help: installHelp,
     ios: /iphone|ipad|ipod/i.test(navigator.userAgent), inApp: /KAKAOTALK|Instagram|FBAN|FBAV|NAVER/i.test(navigator.userAgent) },
@@ -319,6 +324,39 @@ function applyTheme() {
 function paintGrid() {
   const grid = $('#wgrid');
   if (grid) { grid.innerHTML = View.watchedGrid(context()); fillEpisodes(); }
+}
+
+function paintImport() {
+  const box = $('#impBox');
+  if (box) box.outerHTML = View.importBox(context());
+}
+
+/** 넷플릭스 시청 기록 파일을 읽어서 본 작품으로 체크한다 */
+async function importViewingHistory(file) {
+  if (!file || imp.running) return;
+  let names = [];
+  try { names = parseViewingHistory(await file.text()); } catch { names = []; }
+  if (!names.length) {
+    imp.result = { error: '작품 이름을 찾지 못했어요. 넷플릭스에서 받은 NetflixViewingHistory.csv 파일이 맞는지 확인해 주세요.', missed: [] };
+    paintImport();
+    return;
+  }
+  Object.assign(imp, { running: true, done: 0, total: names.length, result: null });
+  paintImport();
+  const { found, missed } = await importNames(names, searchTitles, (done) => { imp.done = done; paintImport(); });
+  let added = 0;
+  let already = 0;
+  for (const it of found) {
+    if (S.status[it.key]) { already++; continue; } // 이미 체크(특히 인생작)한 건 그대로 둔다
+    S.status[it.key] = 'seen';
+    remember(it);
+    added++;
+  }
+  imp.running = false;
+  imp.result = { added, already, missed };
+  save();
+  render();
+  toast(added ? `${added}개를 본 작품으로 체크했어요` : '새로 체크할 작품이 없었어요');
 }
 
 function paintFind() {
@@ -386,6 +424,7 @@ function render() {
   pop.hidden = !themeOpen;
   pop.innerHTML = themeOpen ? View.themePop(ctx) : '';
   paintSheet();
+  if (heroSwapped) { $('.hero')?.classList.add('swap'); heroSwapped = false; }
   justWished = null; // 효과는 한 번만
   setTimeout(ensureEnough, 0);
   setTimeout(fillEpisodes, 0); // 화면에 보이는 드라마·애니의 회차 수 채우기
@@ -415,6 +454,13 @@ const NO_RENDER = Symbol('no-render'); // 화면을 다시 그릴 필요가 없�
 
 const actions = {
   // 홈 가로 줄 화살표: 한 화면 폭의 80%만큼 부드럽게 넘긴다
+  // 오늘의 1순위를 다음 후보로 넘기기 (오늘 하루 동안 기억, 내일이 되면 새로 시작)
+  heroNext: () => {
+    const today = kstDay();
+    const n = S.heroPick?.day === today ? S.heroPick.n + 1 : 1;
+    S.heroPick = { day: today, n };
+    heroSwapped = true;
+  },
   shelfMove: (v) => {
     const [row, dir] = v.split('|');
     const el = document.querySelector(`.shelf-scroll[data-row="${CSS.escape(row)}"]`);
@@ -631,6 +677,7 @@ document.addEventListener('input', (e) => {
 
 // 찾기 화면의 정렬·안 본 것만
 document.addEventListener('change', (e) => {
+  if (e.target.id === 'nfcsv') { importViewingHistory(e.target.files?.[0]); e.target.value = ''; return; }
   if (e.target.id === 'fsort') { find.sort = e.target.value; paintFind(); }
   if (e.target.id === 'funseen') { find.unseenOnly = e.target.checked; paintFind(); }
 });
