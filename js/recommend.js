@@ -61,8 +61,9 @@ export function rankCandidates(catalog, state, lookup) {
   return catalog
     .filter((item) => {
       if (state.status[item.key] || state.nope.includes(item.key)) return false;
-      if (state.kinds.length && !state.kinds.includes(item.kind)) return false;
-      return state.filter === 'all' || state.filter === item.kind;
+      // 위쪽 종류 버튼(드라마·영화·애니)을 직접 누르면 설문에서 고른 종류와 상관없이 그 종류를 보여 준다
+      if (state.filter !== 'all') return state.filter === item.kind;
+      return !state.kinds.length || state.kinds.includes(item.kind);
     })
     .map((item) => ({ item, a: analyze(item, state, lookup) }))
     .sort((x, y) => y.a.score - x.a.score || y.item.pop - x.item.pop);

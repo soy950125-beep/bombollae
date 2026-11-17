@@ -103,10 +103,10 @@ const CATALOG_REQUESTS = [
   ['/discover/movie', { ...TOP, page: 2 }, 'movie']
 ];
 
-/** 추천 후보 목록을 한 번에 불러온다. 일부 요청이 실패해도 성공한 것만 모아서 쓴다. */
-export async function fetchCatalog() {
+/** 요청 여러 개를 한 번에 보내고, 일부가 실패해도 성공한 것만 모아서 작품 목록으로 만든다 */
+async function fetchMany(requests) {
   const results = await Promise.allSettled(
-    CATALOG_REQUESTS.map(([path, params, type]) => tmdb(path, params).then((data) => ({ data, type })))
+    requests.map(([path, params, type]) => tmdb(path, params).then((data) => ({ data, type })))
   );
   const seen = new Set();
   const items = [];
@@ -120,6 +120,25 @@ export async function fetchCatalog() {
   }
   if (!items.length) throw firstError || new TmdbError(0, 'empty');
   return items;
+}
+
+/** 추천 후보 목록을 한 번에 불러온다 */
+export function fetchCatalog() {
+  return fetchMany(CATALOG_REQUESTS);
+}
+
+// 한 종류(드라마·영화·애니)의 추천이 모자라면 그 종류만 더 불러온다. round가 커질수록 다음 페이지.
+const MORE_REQUESTS = {
+  drama: (n) => [['/discover/tv', { ...POPULAR, without_genres: '16', page: n + 2 }, 'tv'],
+    ['/discover/tv', { ...POPULAR, without_genres: '16', with_original_language: 'ko', page: n + 3 }, 'tv']],
+  movie: (n) => [['/discover/movie', { ...POPULAR, page: n + 2 }, 'movie'],
+    ['/discover/movie', { ...POPULAR, with_original_language: 'ko', page: n + 1 }, 'movie']],
+  anime: (n) => [['/discover/tv', { ...POPULAR, with_genres: '16', page: n + 2 }, 'tv'],
+    ['/discover/movie', { ...POPULAR, with_genres: '16', page: n + 1 }, 'movie']]
+};
+
+export function fetchMore(kind, round) {
+  return fetchMany(MORE_REQUESTS[kind](round));
 }
 
 /** 제목으로 검색 (드라마·영화 함께) */

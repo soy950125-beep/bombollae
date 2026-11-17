@@ -3,7 +3,7 @@
 
 import { APP_NAME, THEMES } from './config.js';
 import { readJSON, writeJSON } from './storage.js';
-import { fetchCatalog, searchTitles, fetchDetail, errorMessage } from './tmdb.js';
+import { fetchCatalog, fetchMore, searchTitles, fetchDetail, errorMessage } from './tmdb.js';
 import { decoSVG } from './flowers.js';
 import { rankCandidates } from './recommend.js';
 import * as View from './views.js';
@@ -89,6 +89,33 @@ async function loadCatalog(force = false) {
   render();
 }
 
+// 한 종류만 골랐을 때 추천이 10개보다 적으면 그 종류를 자동으로 더 불러온다 (종류마다 최대 4번)
+const more = { loading: false, round: { drama: 0, movie: 0, anime: 0 }, done: {} };
+const moreExhausted = (kind) => Boolean(more.done[kind]) || more.round[kind] >= 4;
+
+async function loadMore(kind) {
+  if (more.loading || !more.round.hasOwnProperty(kind) || moreExhausted(kind)) return;
+  more.loading = true;
+  render();
+  try {
+    const items = await fetchMore(kind, ++more.round[kind]);
+    const known = new Set(catalog.items.map((it) => it.key));
+    const fresh = items.filter((it) => !known.has(it.key));
+    if (!fresh.length) more.done[kind] = true;
+    catalog.items = [...catalog.items, ...fresh];
+    writeJSON(CATALOG_KEY, { at: catalog.at, items: catalog.items });
+  } catch {
+    more.done[kind] = true;
+  }
+  more.loading = false;
+  render();
+}
+
+function ensureEnough() {
+  if (S.screen !== 'main' || S.tab !== 'rec' || find.open || S.filter === 'all' || catalog.loading || !catalog.items.length) return;
+  if (rankCandidates(catalog.items, S, lookup).length < 10) loadMore(S.filter);
+}
+
 async function runSearch(q) {
   const seq = ++search.seq; // 빨리 연달아 칠 때 늦게 온 옛날 결과는 버린다
   search.q = q;
@@ -130,6 +157,37 @@ async function runFind(q) {
 
 /* 예고편 미리보기: 상세 화면을 열면 위쪽 큰 이미지 자리에서 소리 없이 30초 재생하고 원래 이미지로 돌아간다 */
 const PREVIEW_MS = 30000;
+// 유튜브 영상과 메시지로 대화해서 소리 켜기/끄기 (자동 재생은 소리 없이 시작해야 확실히 되므로, 준비되면 바로 소리를 켠다)
+const YT_ORIGIN = /^https:\/\/www\.youtube(-nocookie)?\.com$/;
+function ytSend(msg) {
+  document.querySelector('.hero-video iframe')?.contentWindow?.postMessage(JSON.stringify({ ...msg, id: 'hero', channel: 'widget' }), '*');
+}
+function paintMute(muted) {
+  const btn = document.querySelector('.hero-mute');
+  if (!btn) return;
+  btn.setAttribute('aria-pressed', String(muted));
+  btn.setAttribute('aria-label', muted ? '소리 켜기' : '소리 끄기');
+  btn.innerHTML = View.muteIcon(muted);
+}
+document.addEventListener('load', (e) => {   // iframe이 다 뜨면 '말 걸 준비 됐어요' 신호 보내기
+  if (e.target.matches?.('.hero-video iframe')) ytSend({ event: 'listening' });
+}, true);
+window.addEventListener('message', (e) => {
+  if (!YT_ORIGIN.test(e.origin)) return;
+  const det = details[S.detail];
+  if (!det?.preview) return;
+  let data;
+  try { data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
+  if (data.event === 'onReady' && !det.userMuted) {
+    ytSend({ event: 'command', func: 'unMute', args: [] });
+    ytSend({ event: 'command', func: 'playVideo', args: [] });
+  }
+  // 아이폰처럼 소리를 막는 기기에선 계속 '음소거' 상태로 알려 주므로, 버튼이 실제 상태를 따라가게 한다
+  if (data.info && typeof data.info.muted === 'boolean' && data.info.muted !== det.muted) {
+    det.muted = data.info.muted;
+    paintMute(det.muted);
+  }
+});
 let previewTimer = null;
 const canAutoplay = () =>
   !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !(navigator.connection && navigator.connection.saveData);
@@ -138,6 +196,8 @@ function startPreview(key) {
   const det = details[key];
   if (!det?.trailer || det.playing || det.previewDone || !canAutoplay()) return;
   det.preview = true;
+  det.muted = true;      // 소리 켜기에 성공하면 유튜브가 알려 줘서 바뀐다
+  det.userMuted = false;
   clearTimeout(previewTimer);
   previewTimer = setTimeout(() => stopPreview(key, true), PREVIEW_MS);
 }
@@ -172,6 +232,7 @@ async function loadDetail(item) {
 const $ = (sel) => document.querySelector(sel);
 const context = () => ({
   S, catalog, search, details, lookup, wipeArmed, cup, find, justWished,
+  more: { loading: more.loading, exhausted: moreExhausted(S.filter) },
   install: { installed: isInstalled(), canPrompt: Boolean(installPrompt), help: installHelp,
     ios: /iphone|ipad|ipod/i.test(navigator.userAgent), inApp: /KAKAOTALK|Instagram|FBAN|FBAV|NAVER/i.test(navigator.userAgent) },
   cupCount: S.tab === 'cup' && cup.stage === 'setup' ? cupPool().length : 0
@@ -292,6 +353,7 @@ function render() {
   pop.innerHTML = themeOpen ? View.themePop(ctx) : '';
   paintSheet();
   justWished = null; // 효과는 한 번만
+  setTimeout(ensureEnough, 0);
 
   if (active) {
     const [act, v] = active.split('|');
@@ -395,6 +457,17 @@ const actions = {
       justWished = null;
       return NO_RENDER;
     }
+  },
+  // 미리보기 오른쪽 아래 음소거 버튼 (누르는 동작이 있어야 아이폰에서도 소리가 켜진다)
+  toggleMute: (key) => {
+    const det = details[key];
+    if (!det?.preview) return NO_RENDER;
+    det.muted = !det.muted;
+    det.userMuted = det.muted;
+    ytSend({ event: 'command', func: det.muted ? 'mute' : 'unMute', args: [] });
+    if (!det.muted) ytSend({ event: 'command', func: 'playVideo', args: [] });
+    paintMute(det.muted);
+    return NO_RENDER;
   },
   playTrailer: (key) => {
     stopPreview(key, false);  // 위쪽 미리보기는 멈추고 아래에서 소리 켜고 재생

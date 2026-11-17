@@ -31,6 +31,8 @@ const ICON = {
   undo: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
   search: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
   back: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  soundOn: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+  soundOff: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
   play: '<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>',
   x: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
 };
@@ -186,7 +188,7 @@ function heroCard({ item, a }, S, justWished) {
     '</div></article>';
 }
 
-export function recView({ S, catalog, lookup, justWished }) {
+export function recView({ S, catalog, lookup, justWished, more }) {
   const head = '<header class="page-head"><h1>오늘의 추천</h1></header>' +
     `<button type="button" class="search search-entry" data-act="findOpen">${ICON.search}<span>보고 싶은 작품 찾기</span></button>`;
   if (catalog.loading && !catalog.items.length) return head + loading('작품을 불러오는 중이에요');
@@ -195,7 +197,10 @@ export function recView({ S, catalog, lookup, justWished }) {
   }
   const ranked = rankCandidates(catalog.items, S, lookup);
   if (!ranked.length) {
-    return head + kindChips('filter', S.filter) + empty('추천할 작품을 다 봤어요!', '다른 종류를 골라 보거나, 테마 탭에서 목록을 새로 불러와 보세요.');
+    if (more.loading || (S.filter !== 'all' && !more.exhausted)) return head + kindChips('filter', S.filter) + loading('작품을 더 불러오는 중이에요');
+    return head + kindChips('filter', S.filter) +
+      empty('지금 추천할 작품을 다 봤어요!', '다른 종류도 둘러보거나, 찾기에서 장르로 골라 보세요.',
+        '<br><br><button type="button" class="ghost sm" data-act="filter" data-v="all">전체 작품 보기</button> <button type="button" class="ghost sm" data-act="findOpen">찾기로 둘러보기</button>');
   }
   const { hero, rows } = buildShelves(ranked, S, lookup);
   const shelves = rows.map((row) =>
@@ -408,6 +413,11 @@ function providerRow(label, list) {
   ).join('')}</div>`;
 }
 
+/** 예고편 미리보기 음소거 버튼 아이콘 */
+export function muteIcon(muted) {
+  return muted ? ICON.soundOff : ICON.soundOn;
+}
+
 /** 상세 화면 찜 버튼 안쪽 (예고편을 보는 중에도 버튼만 바꿀 수 있게 따로 뺐다) */
 export function wishLabel(wished) {
   return `${wished ? ICON.heartSolid : ICON.heart}${wished ? '찜했어요' : '찜하기'}`;
@@ -464,8 +474,8 @@ export function sheetView({ S, details, lookup }) {
     : `class="panel-hero${det.preview ? ' has-img previewing' : ''}" style="background:${colorFor(it.key)}"`;
   // 넷플릭스처럼 열자마자 소리 없이 예고편 재생 (30초 뒤 app.js가 끄고 원래 이미지로)
   const preview = det.preview && det.trailer
-    ? `<div class="hero-video" aria-hidden="true"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(det.trailer.key)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1" tabindex="-1" title="${esc(it.title)} 예고편 미리보기" allow="autoplay; encrypted-media"></iframe></div>` +
-      `<button type="button" class="hero-sound" data-act="playTrailer" data-v="${it.key}">${ICON.play}소리 켜고 보기</button>`
+    ? `<div class="hero-video" aria-hidden="true"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(det.trailer.key)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}" tabindex="-1" title="${esc(it.title)} 예고편 미리보기" allow="autoplay; encrypted-media"></iframe></div>` +
+      `<button type="button" class="hero-mute" data-act="toggleMute" data-v="${it.key}" aria-pressed="${det.muted !== false}" aria-label="${det.muted !== false ? '소리 켜기' : '소리 끄기'}">${muteIcon(det.muted !== false)}</button>`
     : '';
 
   return '<div class="panel" role="dialog" aria-modal="true" aria-labelledby="dtitle">' +
