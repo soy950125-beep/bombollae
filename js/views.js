@@ -42,7 +42,9 @@ function colorFor(key) {
 }
 
 function genreLine(it) {
-  return it.g.map((id) => GENRE_NAME[id]).filter(Boolean).slice(0, 3).join(' · ');
+  // 종류(드라마·애니)와 같은 장르 이름은 빼서 '드라마 · 드라마'처럼 겹치지 않게
+  const skip = it.kind === 'drama' ? [18] : it.kind === 'anime' ? [16] : [];
+  return it.g.filter((id) => !skip.includes(id)).map((id) => GENRE_NAME[id]).filter(Boolean).slice(0, 3).join(' · ');
 }
 
 /** 포스터 칸. 이미지가 없거나 깨지면 파스텔 색 + 제목으로 보인다. inner는 체크 표시 같은 덧붙임. */
@@ -258,7 +260,7 @@ function contender(it) {
     `<span class="contender-sum">${esc(summary)}</span></button>`;
 }
 
-export function cupView({ S, cup, cupCounts, catalog, lookup }) {
+export function cupView({ S, cup, cupCount, catalog, lookup }) {
   if (catalog.loading && !catalog.items.length) return loading('작품을 불러오는 중이에요');
 
   if (cup.stage === 'match') {
@@ -292,20 +294,10 @@ export function cupView({ S, cup, cupCounts, catalog, lookup }) {
       '<button type="button" class="ghost" data-act="cupReset">월드컵 다시 하기</button></div></div>';
   }
 
-  // 준비 화면
-  const count = cupCounts[cup.source] || 0;
-  const sourceOpt = (id, label, hint, enabled) =>
-    `<button type="button" class="opt" data-act="cupSource" data-v="${id}" aria-pressed="${cup.source === id}"${enabled ? '' : ' disabled'}>` +
-    `<span class="opt-label">${label}</span><span class="opt-hint">${hint}</span></button>`;
-  // 강 수는 따로 고르지 않고 자동으로: 8편이 되면 8강, 모자라면 4강
-  const startSize = count >= 8 ? 8 : count >= 4 ? 4 : 0;
+  // 준비 화면: 고를 것 없이 바로 시작 (찜한 작품 + 취향 추천작이 섞여서 나온다)
+  const startSize = cupCount >= 8 ? 8 : cupCount >= 4 ? 4 : 0;
   return '<header class="page-head"><span class="eyebrow">고르기 힘들 땐</span><h1>오늘의 한 편 월드컵</h1></header>' +
-    '<p class="desc">작품 두 편 중 더 보고 싶은 쪽을 계속 고르면, 마지막에 남은 한 편이 오늘 볼 작품이에요.</p>' +
-    '<h2 class="section-title">어떤 작품으로 할까요?</h2>' +
-    '<div class="opts one">' +
-    sourceOpt('rec', '추천작으로', '내 취향 점수가 높은 작품 중에서', cupCounts.rec >= 4) +
-    sourceOpt('wish', '찜한 작품으로', cupCounts.wish >= 4 ? `찜 목록 ${cupCounts.wish}개 중에서` : '찜한 작품이 4개 이상이면 할 수 있어요', cupCounts.wish >= 4) +
-    '</div>' +
+    '<p class="desc">찜한 작품과 내 취향 추천작 중에서 두 편씩 맞붙어요. 더 보고 싶은 쪽을 계속 고르면, 마지막에 남은 한 편이 오늘 볼 작품이에요.</p>' +
     `<button type="button" class="primary cup-start" data-act="cupStart"${startSize ? '' : ' disabled'}>${startSize ? '시작하기' : '작품이 부족해요'}</button>` +
     (startSize ? `<p class="fine" style="text-align:center">${startSize}편이 맞붙어요 · ${startSize - 1}번만 고르면 끝나요</p>` : '');
 }

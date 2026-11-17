@@ -49,7 +49,7 @@ const find = { open: false, q: '', kind: 'all', genre: 'all', sort: 'rec', unsee
 
 // 오늘의 한 편 월드컵 (새로고침하면 처음부터)
 //   round: 이번 라운드 작품키들, next: 이긴 작품키들, idx: 몇 번째 대결인지, history: 되돌리기용
-const cup = { stage: 'setup', source: 'rec', round: [], next: [], idx: 0, done: 0, total: 0, winner: null, history: [] };
+const cup = { stage: 'setup', round: [], next: [], idx: 0, done: 0, total: 0, winner: null, history: [] };
 
 const save = () => writeJSON(STATE_KEY, S);
 
@@ -146,15 +146,18 @@ async function loadDetail(item) {
 const $ = (sel) => document.querySelector(sel);
 const context = () => ({
   S, catalog, search, details, lookup, wipeArmed, cup, find, justWished,
-  cupCounts: S.tab === 'cup' && cup.stage === 'setup' ? { rec: cupPool('rec').length, wish: cupPool('wish').length } : {}
+  cupCount: S.tab === 'cup' && cup.stage === 'setup' ? cupPool().length : 0
 });
 
 /* ---------- 월드컵 ---------- */
 
-/** 월드컵 후보: 추천작이면 취향 점수 높은 순 16개, 찜이면 아직 안 본 찜 작품 전부 */
-function cupPool(source) {
-  if (source === 'wish') return S.wish.filter((key) => lookup(key) && !S.status[key]);
-  return rankCandidates(catalog.items, { ...S, filter: 'all' }, lookup).slice(0, 16).map((x) => x.item.key);
+/** 월드컵 후보 8편: 찜한 작품(아직 안 본 것)을 먼저 넣고, 모자라면 취향 점수 높은 추천작으로 채운다 */
+function cupPool() {
+  const wished = shuffle(S.wish.filter((key) => lookup(key) && !S.status[key])).slice(0, 8);
+  const picks = rankCandidates(catalog.items, { ...S, filter: 'all' }, lookup)
+    .map((x) => x.item.key)
+    .filter((key) => !wished.includes(key));
+  return [...wished, ...picks].slice(0, 8);
 }
 
 function shuffle(arr) {
@@ -369,13 +372,11 @@ const actions = {
   },
 
   // 월드컵
-  cupSource: (v) => { cup.source = v; },
   cupStart: () => {
-    const pool = cupPool(cup.source);
+    const pool = cupPool();
     const size = pool.length >= 8 ? 8 : pool.length >= 4 ? 4 : 0; // 8편이 되면 8강, 모자라면 4강
     if (!size) { toast('작품이 4개 이상 있어야 해요'); return; }
-    // 추천작은 점수 높은 순으로 자른 뒤 섞고, 찜은 섞은 뒤 자른다
-    const keys = cup.source === 'rec' ? shuffle(pool.slice(0, size)) : shuffle(pool).slice(0, size);
+    const keys = shuffle(pool.slice(0, size));
     Object.assign(cup, { stage: 'match', round: keys, next: [], idx: 0, done: 0, total: size - 1, winner: null, history: [] });
     keys.forEach((k) => remember(lookup(k)));
     top();
