@@ -10,7 +10,7 @@ import { fillEpisodes, rememberEps } from './episodes.js';
 import * as View from './views.js';
 
 const STATE_KEY = 'bombollae-state-v1';
-const CATALOG_KEY = 'bombollae-catalog-v2'; // v2: 한국에서 볼 수 있는 작품만
+const CATALOG_KEY = 'bombollae-catalog-v3'; // v3: 한국 드라마·일본 애니 위주
 const CATALOG_TTL = 12 * 60 * 60 * 1000; // 작품 목록은 12시간마다 새로 받는다
 
 /* ---------- 상태 ---------- */

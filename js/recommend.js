@@ -6,8 +6,17 @@
 //   + 1~1.5점 보는 습관과 맞을 때
 //   + 1점    TMDB 평점 8점 이상 (그 아래는 6점 기준으로 조금씩 가감)
 //   - 4점    피하고 싶다고 고른 요소가 있을 때
+//   + 2점    한국 드라마 / 일본 애니 (한국 사용자 맞춤), 한국 영화는 +1점
 
 import { REASON, WARN, ROW_TITLE, GENRE_GROUPS } from './config.js';
+
+/** 한국 사용자 맞춤 가산점: 한국 드라마·일본 애니 +2, 한국 영화 +1 */
+export function localBoost(item) {
+  if (item.kind === 'drama' && item.lang === 'ko') return 2;
+  if (item.kind === 'anime' && item.lang === 'ja') return 2;
+  if (item.kind === 'movie' && item.lang === 'ko') return 1;
+  return 0;
+}
 
 export function analyze(item, state, lookup) {
   let score = 0;
@@ -43,6 +52,9 @@ export function analyze(item, state, lookup) {
   // 4) 평점
   if (item.vote >= 8) { score += 1; reasons.push(`TMDB 평점 ${item.vote.toFixed(1)}점으로 평이 아주 좋아요`); }
   else if (item.vote) { score += (item.vote - 6) * 0.3; }
+
+  // 5) 한국 사용자 맞춤: 한국 드라마·일본 애니를 위로, 한국 영화는 조금
+  score += localBoost(item);
 
   if (!reasons.length) reasons.push(REASON[item.tags[0]]);
 
@@ -82,7 +94,7 @@ export function buildShelves(ranked, state, lookup) {
   // 다들 봤는데 나만 안 본 TOP 10: 지금 인기 순위에서 내가 본 작품을 뺀 순위 (그래서 사람마다 다르다)
   const top10 = ranked
     .filter((x) => x.item.key !== hero.item.key)
-    .sort((x, y) => y.item.pop - x.item.pop)
+    .sort((x, y) => y.item.pop * (1 + localBoost(y.item) * 0.5) - x.item.pop * (1 + localBoost(x.item) * 0.5))
     .slice(0, 10);
   top10.forEach((x) => used.add(x.item.key));
 

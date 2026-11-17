@@ -76,6 +76,7 @@ export function normalize(raw, typeHint) {
     date: raw.first_air_date || raw.release_date || '',
     year: (raw.first_air_date || raw.release_date || '').slice(0, 4),
     overview: raw.overview || '',
+    lang: raw.original_language || '',
     vote: raw.vote_average || 0,
     pop: raw.popularity || 0
   };
@@ -86,21 +87,25 @@ export function normalize(raw, typeHint) {
 const KR = { watch_region: 'KR', with_watch_monetization_types: 'flatrate|free|ads' };
 const POPULAR = { ...KR, sort_by: 'popularity.desc' };
 const TOP = { ...KR, sort_by: 'vote_average.desc', 'vote_count.gte': 400 };
+// 한국 사용자용 구성: 드라마는 한국 드라마 위주, 애니는 일본 애니 위주, 영화는 한국·해외 고르게
 const CATALOG_REQUESTS = [
-  ['/discover/tv', { ...POPULAR, page: 1 }, 'tv'],
-  ['/discover/tv', { ...POPULAR, page: 2 }, 'tv'],
-  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', page: 1 }, 'tv'],
-  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', page: 2 }, 'tv'],
-  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', page: 3 }, 'tv'],
+  // 드라마: 한국 5페이지 + 해외 인기작 1페이지
+  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', without_genres: '16', page: 1 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', without_genres: '16', page: 2 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', without_genres: '16', page: 3 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, with_original_language: 'ko', without_genres: '16', page: 4 }, 'tv'],
+  ['/discover/tv', { ...TOP, with_original_language: 'ko', without_genres: '16', 'vote_count.gte': 50, page: 1 }, 'tv'],
+  ['/discover/tv', { ...POPULAR, without_genres: '16', page: 1 }, 'tv'],
+  // 애니: 일본 애니 시리즈 + 일본 애니 영화
   ['/discover/tv', { ...POPULAR, with_genres: '16', with_original_language: 'ja', page: 1 }, 'tv'],
   ['/discover/tv', { ...POPULAR, with_genres: '16', with_original_language: 'ja', page: 2 }, 'tv'],
-  ['/discover/tv', { ...TOP, page: 1 }, 'tv'],
-  ['/discover/movie', { ...POPULAR, page: 1 }, 'movie'],
-  ['/discover/movie', { ...POPULAR, page: 2 }, 'movie'],
+  ['/discover/tv', { ...TOP, with_genres: '16', with_original_language: 'ja', page: 1 }, 'tv'],
+  ['/discover/movie', { ...POPULAR, with_genres: '16', with_original_language: 'ja', page: 1 }, 'movie'],
+  // 영화: 한국 영화 + 해외 인기·평점
   ['/discover/movie', { ...POPULAR, with_original_language: 'ko', page: 1 }, 'movie'],
-  ['/discover/movie', { ...POPULAR, with_genres: '16', page: 1 }, 'movie'],
-  ['/discover/movie', { ...TOP, page: 1 }, 'movie'],
-  ['/discover/movie', { ...TOP, page: 2 }, 'movie']
+  ['/discover/movie', { ...POPULAR, with_original_language: 'ko', page: 2 }, 'movie'],
+  ['/discover/movie', { ...POPULAR, without_genres: '16', page: 1 }, 'movie'],
+  ['/discover/movie', { ...TOP, page: 1 }, 'movie']
 ];
 
 /** 요청 여러 개를 한 번에 보내고, 일부가 실패해도 성공한 것만 모아서 작품 목록으로 만든다 */
@@ -129,12 +134,12 @@ export function fetchCatalog() {
 
 // 한 종류(드라마·영화·애니)의 추천이 모자라면 그 종류만 더 불러온다. round가 커질수록 다음 페이지.
 const MORE_REQUESTS = {
-  drama: (n) => [['/discover/tv', { ...POPULAR, without_genres: '16', page: n + 2 }, 'tv'],
-    ['/discover/tv', { ...POPULAR, without_genres: '16', with_original_language: 'ko', page: n + 3 }, 'tv']],
-  movie: (n) => [['/discover/movie', { ...POPULAR, page: n + 2 }, 'movie'],
-    ['/discover/movie', { ...POPULAR, with_original_language: 'ko', page: n + 1 }, 'movie']],
-  anime: (n) => [['/discover/tv', { ...POPULAR, with_genres: '16', page: n + 2 }, 'tv'],
-    ['/discover/movie', { ...POPULAR, with_genres: '16', page: n + 1 }, 'movie']]
+  drama: (n) => [['/discover/tv', { ...POPULAR, with_original_language: 'ko', without_genres: '16', page: n + 4 }, 'tv'],
+    ['/discover/tv', { ...TOP, with_original_language: 'ko', without_genres: '16', 'vote_count.gte': 50, page: n + 1 }, 'tv']],
+  movie: (n) => [['/discover/movie', { ...POPULAR, with_original_language: 'ko', page: n + 2 }, 'movie'],
+    ['/discover/movie', { ...POPULAR, without_genres: '16', page: n + 1 }, 'movie']],
+  anime: (n) => [['/discover/tv', { ...POPULAR, with_genres: '16', with_original_language: 'ja', page: n + 2 }, 'tv'],
+    ['/discover/movie', { ...POPULAR, with_genres: '16', with_original_language: 'ja', page: n + 1 }, 'movie']]
 };
 
 export function fetchMore(kind, round) {
