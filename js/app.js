@@ -42,7 +42,10 @@ const search = { q: '', items: [], loading: false, error: '', seq: 0, timer: nul
 const details = {};
 let wipeArmed = false;
 let justWished = null;  // 방금 찜한 작품 (그 하트만 톡 커지는 효과를 주려고)
-let themeOpen = false; // 오른쪽 위 테마 버튼의 꽃 목록이 열려 있는지
+let themeOpen = false;
+let installPrompt = null;   // 안드로이드 크롬이 주는 '앱 설치' 창 (나중에 버튼을 누를 때 띄운다)
+let installHelp = false;    // 설치 방법 안내 펼침 여부
+const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; // 오른쪽 위 테마 버튼의 꽃 목록이 열려 있는지
 
 // 찾기 화면 (검색어·종류·장르·정렬). 검색어가 있으면 TMDB 전체에서, 없으면 불러온 목록에서 찾는다
 const find = { open: false, q: '', kind: 'all', genre: 'all', sort: 'rec', unseenOnly: true, items: [], loading: false, error: '', seq: 0, timer: null };
@@ -146,6 +149,8 @@ async function loadDetail(item) {
 const $ = (sel) => document.querySelector(sel);
 const context = () => ({
   S, catalog, search, details, lookup, wipeArmed, cup, find, justWished,
+  install: { installed: isInstalled(), canPrompt: Boolean(installPrompt), help: installHelp,
+    ios: /iphone|ipad|ipod/i.test(navigator.userAgent), inApp: /KAKAOTALK|Instagram|FBAN|FBAV|NAVER/i.test(navigator.userAgent) },
   cupCount: S.tab === 'cup' && cup.stage === 'setup' ? cupPool().length : 0
 });
 
@@ -406,6 +411,19 @@ const actions = {
   cupQuit: () => { cup.stage = 'setup'; top(); },
   cupReset: () => { cup.stage = 'setup'; top(); },
 
+  // 휴대폰에 앱처럼 설치
+  install: async () => {
+    if (installPrompt) {          // 안드로이드 크롬: 바로 설치 창
+      installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      installPrompt = null;
+      if (outcome === 'accepted') toast('홈 화면에 봄볼래를 추가했어요');
+      render();
+      return;
+    }
+    installHelp = !installHelp;   // 아이폰·카카오톡 등: 방법 안내를 펼친다
+  },
+
   // 테마·설정
   themeMenu: () => { themeOpen = !themeOpen; },
   theme: (v) => {
@@ -521,6 +539,13 @@ function startSplash() {
     splash.classList.add('play');
     setTimeout(close, reduced ? 1000 : 2000);
   });
+}
+
+/* ---------- 앱 설치(PWA) ---------- */
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; if (S.tab === 'seen') render(); });
+window.addEventListener('appinstalled', () => { installPrompt = null; render(); });
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => { /* 실패해도 앱은 그대로 동작 */ }));
 }
 
 /* ---------- 시작 ---------- */

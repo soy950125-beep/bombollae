@@ -215,7 +215,23 @@ export function wishView({ S, lookup, justWished }) {
       : empty('아직 찜한 작품이 없어요', '홈 화면에서 하트를 누르면 여기에 모여요.'));
 }
 
-export function seenView({ S, lookup, catalog, wipeArmed }) {
+function installBox(install) {
+  if (install.installed) return '';
+  let help = '';
+  if (install.help) {
+    help = install.inApp
+      ? '<p class="desc">카카오톡 같은 앱 안에서는 설치가 안 돼요. 오른쪽 아래 <b>⋯</b> 또는 <b>공유</b>를 눌러 <b>Safari / Chrome으로 열기</b>를 한 뒤 다시 눌러 주세요.</p>'
+      : install.ios
+        ? '<ol class="install-steps"><li>Safari 아래쪽 <b>공유 버튼</b>(네모에서 화살표가 나온 모양)을 눌러요</li><li><b>홈 화면에 추가</b>를 눌러요</li><li>오른쪽 위 <b>추가</b>를 누르면 끝!</li></ol>'
+        : '<ol class="install-steps"><li>Chrome 오른쪽 위 <b>⋮</b> 메뉴를 눌러요</li><li><b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 눌러요</li></ol>';
+    help = `<div class="install-help">${help}</div>`;
+  }
+  return '<div class="install">' +
+    `<button type="button" class="primary install-btn" data-act="install" aria-expanded="${install.help}">휴대폰에 앱으로 설치하기</button>` +
+    '<p class="fine">홈 화면에 벚꽃 아이콘이 생기고, 주소창 없이 앱처럼 열려요.</p>' + help + '</div>';
+}
+
+export function seenView({ S, lookup, catalog, wipeArmed, install }) {
   const list = Object.keys(S.status).map(lookup).filter(Boolean);
   const c = counts(S);
   const mins = catalog.at ? Math.round((Date.now() - catalog.at) / 60000) : 0;
@@ -224,7 +240,7 @@ export function seenView({ S, lookup, catalog, wipeArmed }) {
     (list.length ? `<div class="pgrid">${list.map((it) => pick(it, S)).join('')}</div>`
       : empty('아직 체크한 작품이 없어요', '본 작품을 체크하면 추천에서 빠져요.')) +
     '<button type="button" class="ghost" data-act="more">본 작품 더 체크하기</button>' +
-    '<h2 class="section-title">설정</h2><div class="settings">' +
+    '<h2 class="section-title">설정</h2>' + installBox(install) + '<div class="settings">' +
     `<button type="button" class="ghost sm" data-act="reload">작품 목록 새로 불러오기 (${when})</button>` +
     '<button type="button" class="ghost sm" data-act="resurvey">취향 설문 다시 하기</button>' +
     `<button type="button" class="ghost sm${wipeArmed ? ' danger-armed' : ''}" data-act="wipe">${wipeArmed ? '정말 지울까요? 한 번 더 누르면 모두 지워져요' : '모든 기록 지우기'}</button></div>` +

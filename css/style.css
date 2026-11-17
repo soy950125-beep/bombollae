@@ -267,7 +267,10 @@ body[data-view="find"] .deco-br { display: none; }
       var(--soft);
     background-attachment: fixed; }
   body { background: transparent; }
-  .app { background: var(--bg); min-height: 100vh; box-shadow: 0 0 0 1px var(--line), 0 20px 60px rgba(61, 43, 51, .1); }
+  /* 가운데 휴대폰 화면 배경은 맨 뒤에 따로 깔아서, 꽃 장식이 그 위·내용 아래에 보이도록 한다 */
+  body::before { content: ""; position: fixed; z-index: -1; top: 0; bottom: 0; left: 50%; width: 480px; transform: translateX(-50%);
+    background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 20px 60px rgba(61, 43, 51, .1); transition: background-color .45s ease; }
+  .app { min-height: 100vh; }
 }
 @media (min-width: 1100px) {
   .desk-intro { display: flex; flex-direction: column; gap: 14px; position: fixed; top: 50%; transform: translateY(-50%);
@@ -283,6 +286,13 @@ body[data-view="find"] .deco-br { display: none; }
   .desk-qr img { border-radius: 8px; flex-shrink: 0; }
   .desk-qr span { font-size: 13px; color: var(--muted); line-height: 1.5; }
 }
+
+/* 휴대폰에 앱으로 설치 */
+.install { display: flex; flex-direction: column; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 14px; }
+.install-btn { flex: none; width: 100%; height: 50px; }
+.install .fine { text-align: center; }
+.install-help { background: var(--soft); border-radius: 14px; padding: 12px 14px; }
+.install-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 
 /* 테마·설정 */
 .themes { display: flex; flex-direction: column; gap: 10px; }
